@@ -214,20 +214,23 @@ struct ActionPad: View {
 
     var body: some View {
         Button(action: tapAction) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 Image(systemName: symbolName)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 24, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.system(size: 21, weight: .black, design: .rounded))
+                        .font(.system(size: 24, weight: .black, design: .rounded))
                     Text(subtitle)
-                        .font(.system(.footnote, design: .rounded, weight: .medium))
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundStyle(.black.opacity(0.68))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
-            .padding(18)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(
@@ -253,121 +256,80 @@ struct ActionPad: View {
     }
 }
 
-struct ClickwheelTransportCluster: View {
+struct TransportButtonRow: View {
     let centerSymbolName: String
-    let diameter: CGFloat
     let previousAction: () -> Void
     let centerAction: () -> Void
     let nextAction: () -> Void
 
     var body: some View {
-        let centerDiameter = diameter * 0.58
-        let buttonOffset = diameter * 0.295
-        let labelOffset = diameter * 0.33
-        let buttonSize = diameter * 0.24
-
-        ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.clickwheelMetal.opacity(0.86),
-                            Color.white.opacity(0.56),
-                            Color(red: 0.47, green: 0.47, blue: 0.49).opacity(0.92)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: diameter, height: diameter)
-                .overlay {
-                    Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1.2)
-                }
-
-            Circle()
-                .fill(Color(red: 0.12, green: 0.13, blue: 0.16))
-                .frame(width: centerDiameter, height: centerDiameter)
-                .overlay {
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.neonBlue.opacity(0.65), Color.neonPink.opacity(0.55)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.1
-                        )
-                }
-
-            Button(action: centerAction) {
-                Image(systemName: centerSymbolName)
-                    .font(.system(size: diameter * 0.17, weight: .black))
-                    .foregroundStyle(Color.neonText)
-                    .frame(width: centerDiameter * 0.86, height: centerDiameter * 0.86)
-            }
-
-            ClickwheelButton(symbolName: "backward.fill", size: buttonSize, action: previousAction)
-                .offset(x: -buttonOffset)
-
-            ClickwheelButton(symbolName: "forward.fill", size: buttonSize, action: nextAction)
-                .offset(x: buttonOffset)
-
-            Text("MENU")
-                .font(.system(size: 12, weight: .black, design: .rounded))
-                .foregroundStyle(Color.black.opacity(0.68))
-                .offset(y: -labelOffset)
-
-            Image(systemName: "playpause.fill")
-                .font(.system(size: 12, weight: .black))
-                .foregroundStyle(Color.black.opacity(0.68))
-                .offset(y: labelOffset)
+        HStack(spacing: 10) {
+            TransportGlyphButton(symbolName: "backward.fill", action: previousAction)
+            TransportGlyphButton(symbolName: centerSymbolName, isPrimary: true, action: centerAction)
+            TransportGlyphButton(symbolName: "forward.fill", action: nextAction)
         }
-        .shadow(color: Color.neonBlue.opacity(0.12), radius: 26, y: 12)
     }
 }
 
-private struct ClickwheelButton: View {
+private struct TransportGlyphButton: View {
     let symbolName: String
-    let size: CGFloat
+    var isPrimary = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbolName)
-                .font(.system(size: size * 0.42, weight: .black))
-                .foregroundStyle(Color.black.opacity(0.74))
-                .frame(width: size, height: size)
+                .font(.system(size: isPrimary ? 18 : 15, weight: .bold))
+                .foregroundStyle(Color.neonText)
+                .frame(width: isPrimary ? 44 : 38, height: isPrimary ? 44 : 38)
+                .background(
+                    LinearGradient(
+                        colors: isPrimary
+                            ? [Color.neonBlue.opacity(0.34), Color.neonPink.opacity(0.24)]
+                            : [Color.white.opacity(0.08), Color.white.opacity(0.03)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: isPrimary ? 16 : 14, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: isPrimary ? 16 : 14, style: .continuous)
+                        .strokeBorder(
+                            isPrimary ? Color.neonBlue.opacity(0.42) : Color.white.opacity(0.08),
+                            lineWidth: 1
+                        )
+                }
         }
     }
 }
 
-struct AutoSkipToggle: View {
+struct CompactAutoSkipToggle: View {
     let isOn: Bool
     let setOn: (Bool) -> Void
     let disabled: Bool
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Auto-skip after tagging")
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Auto-skip")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.neonText)
-                Text("Off by default. Remembers your last choice.")
-                    .font(.system(.footnote, design: .rounded))
-                    .foregroundStyle(Color.neonText.opacity(0.58))
+                Text(isOn ? "On after tag" : "Off")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.neonText.opacity(0.6))
             }
-
-            Spacer()
 
             Toggle("", isOn: Binding(get: { isOn }, set: setOn))
                 .labelsHidden()
                 .disabled(disabled)
                 .tint(Color.neonBlue)
+                .scaleEffect(0.9)
         }
-        .padding(16)
-        .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.neonBlue.opacity(0.15), lineWidth: 1)
         }
     }
@@ -487,7 +449,7 @@ struct NeonPanel<Content: View>: View {
 
     var body: some View {
         content
-            .padding(18)
+            .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 LinearGradient(

@@ -5,11 +5,11 @@ Use this file as a concise project status snapshot for the current version, what
 ## Music Triage
 
 - Version/build: `0.1.0 (1)`
-- Overall status: first functional iPhone-first implementation is in the repo, now with a native launch screen, a real app icon, and a tighter real-device layout.
+- Overall status: first functional iPhone-first implementation is in the repo, now with a native launch screen, a real app icon, and a tighter one-screen Neon Horizon layout for real iPhones.
 
 ## What works now
 
-- Single-screen SwiftUI app shell with KEEP / DELETE actions, transport controls, progress strip, membership pills, onboarding sheet, splash overlay, hidden debug overlay, and a non-letterboxed launch path on real iPhones.
+- Single-screen SwiftUI app shell with KEEP / DELETE actions, compact transport controls, compact auto-skip control, progress strip, membership pills, onboarding sheet, splash overlay, hidden debug overlay, and a non-letterboxed launch path on real iPhones.
 - Shared playback verification core with tested strong-ID and fallback-metadata timing rules.
 - MusicKit-based playlist resolution, playlist creation, optimistic membership updates, and best-effort opposite-playlist cleanup.
 - Auto-skip preference persistence and keep-screen-awake behavior while active playback is running.
@@ -31,6 +31,6 @@ Use this file as a concise project status snapshot for the current version, what
 
 ## Recommended next priorities
 
-- Reinstall this build on the iPhone and verify four specific fixes: icon appears, no black bars, no scrolling on the main screen, and songs with valid IDs actually unlock tagging.
+- Reinstall this build on the iPhone and verify the whole live control stack is visible at once: transport, auto-skip, and full KEEP/DELETE actions.
 - Run the app on a real iPhone with Apple Music access enabled and validate the plan’s playback-trust scenarios across normal playback changes.
 - Tighten anything Apple Music permission or MusicKit capability setup still needs in practice after that second phone pass.

@@ -26,3 +26,8 @@ If Music Triage can safely resolve the current song itself, tagging stays availa
 Status: approved
 
 The app now ships with a real launch storyboard and asset-catalog app icon instead of relying on a resource-only shell. This avoids real-device compatibility letterboxing and blank icons on modern iPhones.
+
+## 2026-05-11 — Production UI drops the clickwheel influence
+Status: approved
+
+The live app UI now leans back toward pure Neon Horizon and no longer uses the retro clickwheel-style transport cluster. The transport and auto-skip controls are compact utility elements so the whole tagging screen fits on one iPhone screen with KEEP and DELETE still visually dominant.

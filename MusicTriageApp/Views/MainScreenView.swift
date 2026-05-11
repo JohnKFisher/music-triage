@@ -11,14 +11,14 @@ struct MainScreenView: View {
                     .ignoresSafeArea()
 
                 if let displayTrack = model.displayTrackInfo {
-                    VStack(spacing: metrics(for: proxy.size).verticalSpacing) {
+                    let screenMetrics = metrics(for: proxy.size)
+
+                    VStack(spacing: screenMetrics.verticalSpacing) {
                         header
-                        artworkCard(sideLength: metrics(for: proxy.size).artworkSize)
-                        metadata(displayTrack)
-                        membershipRow
-                        Spacer(minLength: 0)
-                        actionArea(cardHeight: metrics(for: proxy.size).actionPadHeight)
-                        utilityArea(displayTrack, wheelDiameter: metrics(for: proxy.size).clickwheelDiameter)
+                        artworkCard(sideLength: screenMetrics.artworkSize)
+                        metadata(displayTrack, compact: screenMetrics.isCompact)
+                        Spacer(minLength: screenMetrics.flexSpacer)
+                        bottomControls(displayTrack, metrics: screenMetrics)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .padding(.horizontal, 20)
@@ -114,29 +114,30 @@ struct MainScreenView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func metadata(_ displayTrack: DisplayTrackInfo) -> some View {
+    private func metadata(_ displayTrack: DisplayTrackInfo, compact: Bool) -> some View {
         NeonPanel {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: compact ? 8 : 12) {
                 Text(displayTrack.title)
-                    .font(.system(size: 32, weight: .black, design: .rounded))
+                    .font(.system(size: compact ? 26 : 32, weight: .black, design: .rounded))
                     .foregroundStyle(Color.neonText)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
 
                 Text(displayTrack.artist)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .font(.system(size: compact ? 15 : 18, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.neonText.opacity(0.86))
                     .lineLimit(1)
 
                 if let albumTitle = displayTrack.albumTitle, !albumTitle.isEmpty {
                     Text(albumTitle)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.system(size: compact ? 11 : 13, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.neonBlue.opacity(0.84))
                         .textCase(.uppercase)
-                        .tracking(1.1)
+                        .tracking(compact ? 0.8 : 1.1)
                         .lineLimit(1)
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: compact ? 6 : 8) {
                     ProgressStrip(progress: displayTrack.progress)
 
                     HStack {
@@ -150,9 +151,9 @@ struct MainScreenView: View {
                 .padding(.top, 2)
 
                 Text(displayTrack.helperText)
-                    .font(.system(.subheadline, design: .rounded, weight: .medium))
+                    .font(.system(compact ? .footnote : .subheadline, design: .rounded, weight: .medium))
                     .foregroundStyle(Color.neonText.opacity(0.72))
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(compact ? 2 : 3)
             }
         }
     }
@@ -171,6 +172,14 @@ struct MainScreenView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func bottomControls(_ displayTrack: DisplayTrackInfo, metrics: ScreenMetrics) -> some View {
+        VStack(spacing: metrics.bottomGroupSpacing) {
+            membershipRow
+            utilityArea(displayTrack, compact: metrics.isCompact)
+            actionArea(cardHeight: metrics.actionPadHeight)
+        }
     }
 
     private func actionArea(cardHeight: CGFloat) -> some View {
@@ -208,18 +217,19 @@ struct MainScreenView: View {
         }
     }
 
-    private func utilityArea(_ displayTrack: DisplayTrackInfo, wheelDiameter: CGFloat) -> some View {
+    private func utilityArea(_ displayTrack: DisplayTrackInfo, compact: Bool) -> some View {
         NeonPanel {
-            VStack(spacing: 16) {
-                ClickwheelTransportCluster(
+            HStack(spacing: compact ? 10 : 14) {
+                TransportButtonRow(
                     centerSymbolName: displayTrack.isPlaying ? "pause.fill" : "play.fill",
-                    diameter: wheelDiameter,
                     previousAction: model.skipPrevious,
                     centerAction: model.playPause,
                     nextAction: model.skipNext
                 )
 
-                AutoSkipToggle(
+                Spacer(minLength: compact ? 4 : 10)
+
+                CompactAutoSkipToggle(
                     isOn: model.autoSkipEnabled,
                     setOn: model.setAutoSkipEnabled(_:),
                     disabled: model.activeActionCount > 0
@@ -229,12 +239,14 @@ struct MainScreenView: View {
     }
 
     private func metrics(for size: CGSize) -> ScreenMetrics {
-        let compactHeight = size.height < 760
+        let compactHeight = size.height < 900
         return ScreenMetrics(
-            artworkSize: min(size.width - 40, compactHeight ? 210 : 250),
-            actionPadHeight: compactHeight ? 122 : 140,
-            clickwheelDiameter: compactHeight ? 138 : 156,
-            verticalSpacing: compactHeight ? 12 : 16
+            isCompact: compactHeight,
+            artworkSize: min(size.width - 96, compactHeight ? 188 : 228),
+            actionPadHeight: compactHeight ? 134 : 146,
+            verticalSpacing: compactHeight ? 10 : 14,
+            bottomGroupSpacing: compactHeight ? 10 : 14,
+            flexSpacer: compactHeight ? 0 : 6
         )
     }
 
@@ -254,8 +266,10 @@ struct MainScreenView: View {
 }
 
 private struct ScreenMetrics {
+    let isCompact: Bool
     let artworkSize: CGFloat
     let actionPadHeight: CGFloat
-    let clickwheelDiameter: CGFloat
     let verticalSpacing: CGFloat
+    let bottomGroupSpacing: CGFloat
+    let flexSpacer: CGFloat
 }
