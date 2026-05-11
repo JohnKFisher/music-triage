@@ -22,7 +22,7 @@ struct MainScreenView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .padding(.horizontal, 20)
-                    .padding(.top, max(proxy.safeAreaInsets.top, 16))
+                    .padding(.top, max(proxy.safeAreaInsets.top - 18, 8))
                     .padding(.bottom, max(proxy.safeAreaInsets.bottom, 18))
                 } else {
                     EmptyStateCard()
@@ -41,7 +41,7 @@ struct MainScreenView: View {
                 }
 
                 if model.showDebugOverlay {
-                    DebugOverlay(lines: model.debugLines)
+                    DebugOverlay(lines: model.debugLines, closeAction: model.closeDebugOverlay)
                         .padding()
                         .transition(.opacity)
                 }
@@ -66,15 +66,10 @@ struct MainScreenView: View {
 
     private var header: some View {
         HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Music Triage")
-                    .font(.system(size: 29, weight: .black, design: .rounded))
-                    .foregroundStyle(Color.neonText)
-                    .shadow(color: Color.neonBlue.opacity(0.38), radius: 16)
-                Text("Never act on the wrong song.")
-                    .font(.system(.footnote, design: .rounded, weight: .medium))
-                    .foregroundStyle(Color.neonText.opacity(0.64))
-            }
+            Text("Music Triage")
+                .font(.system(size: 29, weight: .black, design: .rounded))
+                .foregroundStyle(Color.neonText)
+                .shadow(color: Color.neonBlue.opacity(0.38), radius: 16)
 
             Spacer()
 
@@ -138,7 +133,12 @@ struct MainScreenView: View {
                 }
 
                 VStack(alignment: .leading, spacing: compact ? 6 : 8) {
-                    ProgressStrip(progress: displayTrack.progress)
+                    ProgressStrip(
+                        progress: displayTrack.progress,
+                        onScrub: { progress in
+                            model.seek(to: progress)
+                        }
+                    )
 
                     HStack {
                         Text(formatTime(displayTrack.elapsedTime))
@@ -176,8 +176,8 @@ struct MainScreenView: View {
 
     private func bottomControls(_ displayTrack: DisplayTrackInfo, metrics: ScreenMetrics) -> some View {
         VStack(spacing: metrics.bottomGroupSpacing) {
-            membershipRow
             utilityArea(displayTrack, compact: metrics.isCompact)
+            membershipRow
             actionArea(cardHeight: metrics.actionPadHeight)
         }
     }

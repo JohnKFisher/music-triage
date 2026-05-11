@@ -6,7 +6,8 @@ import UIKit
 
 struct ToastMessage: Identifiable, Equatable {
     enum Style: Equatable {
-        case success
+        case keepSuccess
+        case deleteSuccess
         case failure
         case neutral
     }
@@ -120,7 +121,7 @@ final class AppModel: ObservableObject {
             }
 
         hideSplashTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(850))
+            try? await Task.sleep(for: .seconds(1))
             await MainActor.run {
                 self?.isSplashVisible = false
             }
@@ -235,6 +236,10 @@ final class AppModel: ObservableObject {
         showDebugOverlay.toggle()
     }
 
+    func closeDebugOverlay() {
+        showDebugOverlay = false
+    }
+
     func canTrigger(_ action: TrackActionKind) -> Bool {
         guard displayTrackInfo != nil else { return false }
         if canShowPermissionRecovery { return false }
@@ -290,6 +295,16 @@ final class AppModel: ObservableObject {
 
     func skipPrevious() {
         player.skipToPreviousItem()
+        refreshPlaybackObservation()
+    }
+
+    func seek(to progress: Double) {
+        guard let currentObservation else { return }
+        let duration = currentObservation.snapshot.duration
+        guard duration.isFinite, duration > 0 else { return }
+
+        let clampedProgress = min(max(progress, 0), 1)
+        player.currentPlaybackTime = duration * clampedProgress
         refreshPlaybackObservation()
     }
 
@@ -458,7 +473,7 @@ final class AppModel: ObservableObject {
             presentToast(
                 title: "\(action.displayLabel) saved",
                 subtitle: subtitle,
-                style: .success
+                style: action == .keep ? .keepSuccess : .deleteSuccess
             )
             pulse(action)
             notifySuccess(for: action)
@@ -550,11 +565,17 @@ final class AppModel: ObservableObject {
     }
 
     private func notifySuccess(for action: TrackActionKind) {
+        let impact = UIImpactFeedbackGenerator(style: action == .delete ? .rigid : .heavy)
+        impact.prepare()
+        impact.impactOccurred(intensity: 1)
+
+        let notification = UINotificationFeedbackGenerator()
+        notification.prepare()
         switch action {
         case .keep:
-            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            notification.notificationOccurred(.success)
         case .delete:
-            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            notification.notificationOccurred(.warning)
         }
     }
 

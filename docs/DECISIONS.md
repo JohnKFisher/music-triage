@@ -31,3 +31,13 @@ The app now ships with a real launch storyboard and asset-catalog app icon inste
 Status: approved
 
 The live app UI now leans back toward pure Neon Horizon and no longer uses the retro clickwheel-style transport cluster. The transport and auto-skip controls are compact utility elements so the whole tagging screen fits on one iPhone screen with KEEP and DELETE still visually dominant.
+
+## 2026-05-11 — Tagging now requires a deliberate hold
+Status: approved
+
+KEEP and DELETE now require a roughly 0.5 second press instead of a light tap. This reduces accidental tagging while keeping the interaction faster than a confirmation dialog.
+
+## 2026-05-11 — Progress bar can scrub playback and landscape is temporarily disabled
+Status: approved
+
+The now-playing progress strip is now an active scrubber, and the app is portrait-only for the time being. Landscape support is intentionally paused rather than redesigned in place.

@@ -153,6 +153,9 @@ struct PlaybackStamp: View {
 
 struct ProgressStrip: View {
     let progress: Double
+    var onScrub: ((Double) -> Void)? = nil
+
+    @State private var dragProgress: Double?
 
     var body: some View {
         GeometryReader { proxy in
@@ -170,10 +173,43 @@ struct ProgressStrip: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: max(proxy.size.width * progress, 6))
+                    .frame(width: max(proxy.size.width * displayProgress, 6))
+
+                Circle()
+                    .fill(Color.neonText)
+                    .frame(width: 12, height: 12)
+                    .shadow(color: Color.neonBlue.opacity(0.35), radius: 6)
+                    .offset(x: knobOffset(for: proxy.size.width) - 6)
             }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        guard onScrub != nil else { return }
+                        dragProgress = clampedProgress(for: value.location.x, width: proxy.size.width)
+                    }
+                    .onEnded { value in
+                        guard let onScrub else { return }
+                        let newProgress = clampedProgress(for: value.location.x, width: proxy.size.width)
+                        dragProgress = nil
+                        onScrub(newProgress)
+                    }
+            )
         }
         .frame(height: 6)
+    }
+
+    private var displayProgress: Double {
+        dragProgress ?? progress
+    }
+
+    private func clampedProgress(for x: CGFloat, width: CGFloat) -> Double {
+        guard width > 0 else { return progress }
+        return min(max(Double(x / width), 0), 1)
+    }
+
+    private func knobOffset(for width: CGFloat) -> CGFloat {
+        CGFloat(displayProgress) * width
     }
 }
 
@@ -212,47 +248,58 @@ struct ActionPad: View {
     let isEmphasized: Bool
     let tapAction: () -> Void
 
+    @GestureState private var isPressing = false
+
     var body: some View {
-        Button(action: tapAction) {
-            VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: symbolName)
-                    .font(.system(size: 24, weight: .bold))
-                    .symbolRenderingMode(.hierarchical)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 24, weight: .black, design: .rounded))
-                    Text(subtitle)
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundStyle(.black.opacity(0.68))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: symbolName)
+                .font(.system(size: 24, weight: .bold))
+                .symbolRenderingMode(.hierarchical)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 24, weight: .black, design: .rounded))
+                Text(subtitle)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.black.opacity(0.68))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                tint.opacity(isDisabled ? 0.34 : 0.98),
-                                tint.opacity(isDisabled ? 0.24 : 0.72)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .strokeBorder(.white.opacity(isEmphasized ? 0.78 : 0.16), lineWidth: isEmphasized ? 2.2 : 1)
-            }
-            .scaleEffect(isEmphasized ? 1.03 : 1)
-            .shadow(color: tint.opacity(isDisabled ? 0 : 0.34), radius: isEmphasized ? 28 : 16, y: 10)
-            .foregroundStyle(.black.opacity(0.9))
         }
-        .disabled(isDisabled)
+        .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            tint.opacity(isDisabled ? 0.34 : 0.98),
+                            tint.opacity(isDisabled ? 0.24 : 0.72)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(.white.opacity(isEmphasized || isPressing ? 0.78 : 0.16), lineWidth: isEmphasized || isPressing ? 2.2 : 1)
+        }
+        .scaleEffect(isEmphasized ? 1.03 : (isPressing ? 0.985 : 1))
+        .shadow(color: tint.opacity(isDisabled ? 0 : 0.34), radius: isEmphasized ? 28 : 16, y: 10)
+        .foregroundStyle(.black.opacity(0.9))
+        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .gesture(
+            LongPressGesture(minimumDuration: 0.5, maximumDistance: 26)
+                .updating($isPressing) { value, state, _ in
+                    state = value
+                }
+                .onEnded { _ in
+                    guard !isDisabled else { return }
+                    tapAction()
+                }
+        )
+        .opacity(isDisabled ? 0.94 : 1)
     }
 }
 
@@ -388,8 +435,10 @@ struct ToastBanner: View {
 
     var tint: Color {
         switch toast.style {
-        case .success:
+        case .keepSuccess:
             .neonGreen
+        case .deleteSuccess:
+            .neonRed
         case .failure:
             .neonRed
         case .neutral:
@@ -422,6 +471,7 @@ struct ToastBanner: View {
 
 struct DebugOverlay: View {
     let lines: [String]
+    let closeAction: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -437,9 +487,17 @@ struct DebugOverlay: View {
         .padding(16)
         .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(alignment: .topTrailing) {
-            Image(systemName: "waveform.path.ecg")
-                .padding(14)
-                .foregroundStyle(.white.opacity(0.45))
+            HStack(spacing: 10) {
+                Button(action: closeAction) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.82))
+                }
+
+                Image(systemName: "waveform.path.ecg")
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+            .padding(14)
         }
     }
 }
