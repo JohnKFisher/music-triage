@@ -1,0 +1,328 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* MusicTriageApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* MusicTriageApp.swift */; };
+		A10000000000000000000002 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* AppModel.swift */; };
+		A10000000000000000000003 /* PlaylistResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* PlaylistResolver.swift */; };
+		A10000000000000000000004 /* MusicTriageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* MusicTriageService.swift */; };
+		A10000000000000000000005 /* MainScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* MainScreenView.swift */; };
+		A10000000000000000000006 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* Components.swift */; };
+		A10000000000000000000007 /* MockupGallery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* MockupGallery.swift */; };
+		A10000000000000000000008 /* PlaybackModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* PlaybackModels.swift */; };
+		A10000000000000000000009 /* PlaybackVerificationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* PlaybackVerificationEngine.swift */; };
+		A1000000000000000000000A /* John.heic in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* John.heic */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000001 /* MusicTriageApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicTriageApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* PlaylistResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistResolver.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* MusicTriageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicTriageService.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* MainScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainScreenView.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* MockupGallery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockupGallery.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* PlaybackModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackModels.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* PlaybackVerificationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackVerificationEngine.swift; sourceTree = "<group>"; };
+		A2000000000000000000000A /* John.heic */ = {isa = PBXFileReference; lastKnownFileType = image.heic; path = John.heic; sourceTree = "<group>"; };
+		A2000000000000000000000B /* Music Triage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Music Triage.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A30000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A40000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A40000000000000000000002 /* MusicTriageApp */,
+				A40000000000000000000005 /* Sources */,
+				A40000000000000000000009 /* Resources */,
+				A4000000000000000000000A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A40000000000000000000002 /* MusicTriageApp */ = {
+			isa = PBXGroup;
+			path = MusicTriageApp;
+			sourceTree = "<group>";
+			children = (
+				A20000000000000000000001 /* MusicTriageApp.swift */,
+				A20000000000000000000002 /* AppModel.swift */,
+				A20000000000000000000003 /* PlaylistResolver.swift */,
+				A20000000000000000000004 /* MusicTriageService.swift */,
+				A40000000000000000000003 /* Views */,
+				A40000000000000000000004 /* Design */,
+			);
+		};
+		A40000000000000000000003 /* Views */ = {
+			isa = PBXGroup;
+			path = Views;
+			sourceTree = "<group>";
+			children = (
+				A20000000000000000000005 /* MainScreenView.swift */,
+				A20000000000000000000006 /* Components.swift */,
+			);
+		};
+		A40000000000000000000004 /* Design */ = {
+			isa = PBXGroup;
+			path = Design;
+			sourceTree = "<group>";
+			children = (
+				A20000000000000000000007 /* MockupGallery.swift */,
+			);
+		};
+		A40000000000000000000005 /* Sources */ = {
+			isa = PBXGroup;
+			path = Sources;
+			sourceTree = "<group>";
+			children = (
+				A40000000000000000000006 /* MusicTriageCore */,
+			);
+		};
+		A40000000000000000000006 /* MusicTriageCore */ = {
+			isa = PBXGroup;
+			path = MusicTriageCore;
+			sourceTree = "<group>";
+			children = (
+				A20000000000000000000008 /* PlaybackModels.swift */,
+				A20000000000000000000009 /* PlaybackVerificationEngine.swift */,
+			);
+		};
+		A40000000000000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			path = Resources;
+			sourceTree = "<group>";
+			children = (
+				A2000000000000000000000A /* John.heic */,
+			);
+		};
+		A4000000000000000000000A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A2000000000000000000000B /* Music Triage.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* Music Triage */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80000000000000000000001 /* Build configuration list for PBXNativeTarget "Music Triage" */;
+			buildPhases = (
+				A30000000000000000000002 /* Sources */,
+				A30000000000000000000001 /* Frameworks */,
+				A30000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Music Triage";
+			productName = "Music Triage";
+			productReference = A2000000000000000000000B /* Music Triage.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A60000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					A50000000000000000000001 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+				};
+			};
+			buildConfigurationList = A80000000000000000000002 /* Build configuration list for PBXProject "Music Triage" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A40000000000000000000001;
+			productRefGroup = A4000000000000000000000A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000001 /* Music Triage */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A30000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000A /* John.heic in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A30000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000008 /* PlaybackModels.swift in Sources */,
+				A10000000000000000000009 /* PlaybackVerificationEngine.swift in Sources */,
+				A10000000000000000000002 /* AppModel.swift in Sources */,
+				A10000000000000000000003 /* PlaylistResolver.swift in Sources */,
+				A10000000000000000000004 /* MusicTriageService.swift in Sources */,
+				A10000000000000000000006 /* Components.swift in Sources */,
+				A10000000000000000000005 /* MainScreenView.swift in Sources */,
+				A10000000000000000000007 /* MockupGallery.swift in Sources */,
+				A10000000000000000000001 /* MusicTriageApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A70000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A70000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A70000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Music Triage";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Music Triage needs Apple Music access so it can tag songs into Keepers and Music Triage.";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jkfisher.musictriage;
+				PRODUCT_NAME = "Music Triage";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A70000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Music Triage";
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Music Triage needs Apple Music access so it can tag songs into Keepers and Music Triage.";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jkfisher.musictriage;
+				PRODUCT_NAME = "Music Triage";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A80000000000000000000001 /* Build configuration list for PBXNativeTarget "Music Triage" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A70000000000000000000003 /* Debug */,
+				A70000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80000000000000000000002 /* Build configuration list for PBXProject "Music Triage" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A70000000000000000000001 /* Debug */,
+				A70000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A60000000000000000000001 /* Project object */;
+}
