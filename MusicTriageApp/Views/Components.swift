@@ -566,7 +566,7 @@ struct StatusOrb: View {
 struct SplashOverlayView: View {
     var body: some View {
         ZStack {
-            Color.black.opacity(0.82)
+            Color.black
                 .ignoresSafeArea()
 
             VStack(spacing: 18) {
@@ -574,7 +574,7 @@ struct SplashOverlayView: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: 170, height: 170)
+                        .frame(width: 220, height: 220)
                         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 28, style: .continuous)

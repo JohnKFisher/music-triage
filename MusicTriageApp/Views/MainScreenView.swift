@@ -40,6 +40,13 @@ struct MainScreenView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
+                if let flashAction = model.flashAction {
+                    flashOverlay(for: flashAction)
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                        .allowsHitTesting(false)
+                }
+
                 if model.showDebugOverlay {
                     DebugOverlay(lines: model.debugLines, closeAction: model.closeDebugOverlay)
                         .padding()
@@ -61,7 +68,27 @@ struct MainScreenView: View {
             .presentationDragIndicator(.visible)
         }
         .animation(.easeInOut(duration: 0.24), value: model.toast)
+        .animation(.easeOut(duration: 0.26), value: model.flashAction)
         .animation(.easeInOut(duration: 0.2), value: model.showDebugOverlay)
+    }
+
+    private func flashOverlay(for action: TrackActionKind) -> some View {
+        let tint = action == .keep ? Color.neonGreen : Color.neonRed
+
+        return Rectangle()
+            .fill(tint.opacity(0.1))
+            .overlay {
+                LinearGradient(
+                    colors: [
+                        tint.opacity(0.03),
+                        tint.opacity(0.085),
+                        tint.opacity(0.03)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .blendMode(.screen)
     }
 
     private var header: some View {

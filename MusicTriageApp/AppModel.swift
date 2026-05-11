@@ -54,6 +54,7 @@ final class AppModel: ObservableObject {
     @Published var showDebugOverlay = false
     @Published var toast: ToastMessage?
     @Published var emphasizedAction: TrackActionKind?
+    @Published var flashAction: TrackActionKind?
     @Published private(set) var activeActionCount = 0
     @Published private(set) var isSplashVisible = true
 
@@ -66,6 +67,7 @@ final class AppModel: ObservableObject {
     private var resolutionTask: Task<Void, Never>?
     private var hideToastTask: Task<Void, Never>?
     private var hidePulseTask: Task<Void, Never>?
+    private var hideFlashTask: Task<Void, Never>?
     private var hideSplashTask: Task<Void, Never>?
     private var cooldownUntil: Date?
     private var hasStarted = false
@@ -121,7 +123,7 @@ final class AppModel: ObservableObject {
             }
 
         hideSplashTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: .seconds(1.5))
             await MainActor.run {
                 self?.isSplashVisible = false
             }
@@ -484,6 +486,7 @@ final class AppModel: ObservableObject {
                 subtitle: subtitle,
                 style: action == .keep ? .keepSuccess : .deleteSuccess
             )
+            triggerFlash(for: action)
             pulse(action)
             notifySuccess(for: action)
 
@@ -564,6 +567,17 @@ final class AppModel: ObservableObject {
             try? await Task.sleep(for: .milliseconds(900))
             await MainActor.run {
                 self?.emphasizedAction = nil
+            }
+        }
+    }
+
+    private func triggerFlash(for action: TrackActionKind) {
+        flashAction = action
+        hideFlashTask?.cancel()
+        hideFlashTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(220))
+            await MainActor.run {
+                self?.flashAction = nil
             }
         }
     }

@@ -6,17 +6,17 @@ It is intentionally not a player, not a library browser, and not a general music
 
 ## Project Status
 
-Actively developed personal project.
+Basically complete personal project.
 
 Built primarily for my own workflow, but probably useful to other people who also live inside Apple Music.
 
 Right now the intended way to use it is from Xcode on a real iPhone.
 
-It already works, but it is still early and still has rough edges.
+The main app shape is in place. I will probably still make tweaks and small updates from time to time.
 
-![Music Triage screenshot showing a trusted library track](/Users/jkfisher/Documents/Coding/Music%20Triage/docs/images/Kerosene.jpeg)
+![Music Triage screenshot showing a trusted library track](docs/images/Kerosene.jpeg)
 
-![Music Triage screenshot showing another live tagging session](/Users/jkfisher/Documents/Coding/Music%20Triage/docs/images/Sky%20Full%20of%20Stars.jpeg)
+![Music Triage screenshot showing another live tagging session](docs/images/Sky%20Full%20of%20Stars.jpeg)
 
 ## What It Does
 
@@ -95,4 +95,4 @@ That split exists mostly to keep the “never tag the wrong song” logic concre
 
 Like most of my recent projects, this was built with heavy AI assistance using tools like Codex.
 
-The workflow, decisions, testing priorities, and direction are mine. The typing speed definitely is not.
+The workflow, decisions, testing priorities, and direction are mine.
