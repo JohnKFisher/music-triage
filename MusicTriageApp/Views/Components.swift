@@ -290,7 +290,7 @@ struct ActionPad: View {
         .foregroundStyle(.black.opacity(0.9))
         .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .gesture(
-            LongPressGesture(minimumDuration: 0.5, maximumDistance: 26)
+            LongPressGesture(minimumDuration: 0.25, maximumDistance: 26)
                 .updating($isPressing) { value, state, _ in
                     state = value
                 }

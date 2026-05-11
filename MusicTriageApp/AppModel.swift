@@ -251,7 +251,16 @@ final class AppModel: ObservableObject {
                 guard let resolvedContext, resolvedContext.verifiedTrack.identity == verified.identity else {
                     return false
                 }
-                return resolvedContext.song != nil
+                guard resolvedContext.song != nil else {
+                    return false
+                }
+
+                switch action {
+                case .keep:
+                    return true
+                case .delete:
+                    return resolvedContext.isInLibrary
+                }
             }
             return permissionStatus == .notDetermined
         default:
@@ -527,6 +536,12 @@ final class AppModel: ObservableObject {
 
         switch surface {
         case .ready(let verified):
+            if let resolvedContext,
+               resolvedContext.verifiedTrack.identity == verified.identity,
+               resolvedContext.song != nil,
+               !resolvedContext.isInLibrary {
+                return "Verified Apple Music track. KEEP can add it to your library; DELETE stays off until it is already in your library."
+            }
             if verified.identity.strength == .fallback {
                 return "Verified cautiously from stable title and artist."
             }

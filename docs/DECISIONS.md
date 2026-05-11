@@ -35,9 +35,14 @@ The live app UI now leans back toward pure Neon Horizon and no longer uses the r
 ## 2026-05-11 — Tagging now requires a deliberate hold
 Status: approved
 
-KEEP and DELETE now require a roughly 0.5 second press instead of a light tap. This reduces accidental tagging while keeping the interaction faster than a confirmation dialog.
+KEEP and DELETE now require a roughly 0.25 second press instead of a light tap. This still reduces accidental tagging while keeping the interaction faster and less fatiguing than the original 0.5 second hold.
 
 ## 2026-05-11 — Progress bar can scrub playback and landscape is temporarily disabled
 Status: approved
 
 The now-playing progress strip is now an active scrubber, and the app is portrait-only for the time being. Landscape support is intentionally paused rather than redesigned in place.
+
+## 2026-05-11 — Non-library Apple Music tracks can be kept but not deleted
+Status: approved
+
+When the app can safely resolve a currently playing Apple Music catalog track that is not yet in the user’s library, `KEEP` stays enabled so it can add that song to the library and Keepers. `DELETE` is intentionally disabled for those tracks even though a playlist-only tag would be technically possible, because the desired workflow is to delete only from already-owned library songs.

@@ -12,6 +12,7 @@ Use this file as a concise project status snapshot for the current version, what
 - Single-screen SwiftUI app shell with hold-to-tag KEEP / DELETE actions, compact transport controls, compact auto-skip control, a scrubbable progress strip, membership pills, onboarding sheet, splash overlay, dismissible hidden debug overlay, and a non-letterboxed launch path on real iPhones.
 - Shared playback verification core with tested strong-ID and fallback-metadata timing rules.
 - MusicKit-based playlist resolution, playlist creation, optimistic membership updates, and best-effort opposite-playlist cleanup.
+- Trusted Apple Music catalog tracks that are not yet in the library can still use `KEEP`; that path adds the song to the library and Keepers while leaving `DELETE` disabled by design.
 - Auto-skip preference persistence and keep-screen-awake behavior while active playback is running.
 - Fifteen first-round mockup concepts are checked in as a preview gallery plus a short review note.
 - App icon assets and launch storyboard now compile into the iPhone target.

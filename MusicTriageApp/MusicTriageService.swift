@@ -123,6 +123,9 @@ actor MusicTriageService {
             if let song = try await catalogSong(with: playbackStoreID) {
                 return song
             }
+            if let song = try await catalogSongFromDataRequest(with: playbackStoreID) {
+                return song
+            }
         }
 
         if let librarySong = try await uniqueLibrarySong(for: verifiedTrack.observation) {
@@ -135,6 +138,11 @@ actor MusicTriageService {
     private func safelyResolveSong(for verifiedTrack: VerifiedTrack) async -> Song? {
         if let playbackStoreID = verifiedTrack.observation.playbackStoreID,
            let song = try? await catalogSong(with: playbackStoreID) {
+            return song
+        }
+
+        if let playbackStoreID = verifiedTrack.observation.playbackStoreID,
+           let song = try? await catalogSongFromDataRequest(with: playbackStoreID) {
             return song
         }
 
@@ -156,6 +164,24 @@ actor MusicTriageService {
         )
         request.limit = 1
         return try await request.response().items.first
+    }
+
+    private func catalogSongFromDataRequest(with playbackStoreID: String) async throws -> Song? {
+        let countryCode = try await MusicDataRequest.currentCountryCode
+
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.music.apple.com"
+        components.path = "/v1/catalog/\(countryCode.lowercased())/songs"
+        components.queryItems = [
+            URLQueryItem(name: "ids", value: playbackStoreID)
+        ]
+
+        guard let url = components.url else { return nil }
+
+        let response = try await MusicDataRequest(urlRequest: URLRequest(url: url)).response()
+        let payload = try JSONDecoder().decode(CatalogSongsPayload.self, from: response.data)
+        return payload.data.first
     }
 
     private func librarySong(for songID: MusicItemID) async throws -> Song? {
@@ -275,4 +301,8 @@ actor MusicTriageService {
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
     }
+}
+
+private struct CatalogSongsPayload: Decodable {
+    let data: MusicItemCollection<Song>
 }
