@@ -207,26 +207,27 @@ struct ActionPad: View {
     let subtitle: String
     let symbolName: String
     let tint: Color
+    let minHeight: CGFloat
     let isDisabled: Bool
     let isEmphasized: Bool
     let tapAction: () -> Void
 
     var body: some View {
         Button(action: tapAction) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 14) {
                 Image(systemName: symbolName)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 28, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.system(size: 25, weight: .black, design: .rounded))
+                        .font(.system(size: 21, weight: .black, design: .rounded))
                     Text(subtitle)
                         .font(.system(.footnote, design: .rounded, weight: .medium))
                         .foregroundStyle(.black.opacity(0.68))
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 148, alignment: .topLeading)
-            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .topLeading)
+            .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(
@@ -254,11 +255,17 @@ struct ActionPad: View {
 
 struct ClickwheelTransportCluster: View {
     let centerSymbolName: String
+    let diameter: CGFloat
     let previousAction: () -> Void
     let centerAction: () -> Void
     let nextAction: () -> Void
 
     var body: some View {
+        let centerDiameter = diameter * 0.58
+        let buttonOffset = diameter * 0.295
+        let labelOffset = diameter * 0.33
+        let buttonSize = diameter * 0.24
+
         ZStack {
             Circle()
                 .fill(
@@ -272,14 +279,14 @@ struct ClickwheelTransportCluster: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 176, height: 176)
+                .frame(width: diameter, height: diameter)
                 .overlay {
                     Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 1.2)
                 }
 
             Circle()
                 .fill(Color(red: 0.12, green: 0.13, blue: 0.16))
-                .frame(width: 102, height: 102)
+                .frame(width: centerDiameter, height: centerDiameter)
                 .overlay {
                     Circle()
                         .strokeBorder(
@@ -294,26 +301,26 @@ struct ClickwheelTransportCluster: View {
 
             Button(action: centerAction) {
                 Image(systemName: centerSymbolName)
-                    .font(.system(size: 30, weight: .black))
+                    .font(.system(size: diameter * 0.17, weight: .black))
                     .foregroundStyle(Color.neonText)
-                    .frame(width: 88, height: 88)
+                    .frame(width: centerDiameter * 0.86, height: centerDiameter * 0.86)
             }
 
-            ClickwheelButton(symbolName: "backward.fill", action: previousAction)
-                .offset(x: -52)
+            ClickwheelButton(symbolName: "backward.fill", size: buttonSize, action: previousAction)
+                .offset(x: -buttonOffset)
 
-            ClickwheelButton(symbolName: "forward.fill", action: nextAction)
-                .offset(x: 52)
+            ClickwheelButton(symbolName: "forward.fill", size: buttonSize, action: nextAction)
+                .offset(x: buttonOffset)
 
             Text("MENU")
                 .font(.system(size: 12, weight: .black, design: .rounded))
                 .foregroundStyle(Color.black.opacity(0.68))
-                .offset(y: -58)
+                .offset(y: -labelOffset)
 
             Image(systemName: "playpause.fill")
                 .font(.system(size: 12, weight: .black))
                 .foregroundStyle(Color.black.opacity(0.68))
-                .offset(y: 58)
+                .offset(y: labelOffset)
         }
         .shadow(color: Color.neonBlue.opacity(0.12), radius: 26, y: 12)
     }
@@ -321,14 +328,15 @@ struct ClickwheelTransportCluster: View {
 
 private struct ClickwheelButton: View {
     let symbolName: String
+    let size: CGFloat
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbolName)
-                .font(.system(size: 18, weight: .black))
+                .font(.system(size: size * 0.42, weight: .black))
                 .foregroundStyle(Color.black.opacity(0.74))
-                .frame(width: 42, height: 42)
+                .frame(width: size, height: size)
         }
     }
 }

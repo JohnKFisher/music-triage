@@ -43,36 +43,26 @@ actor MusicTriageService {
             )
         }
 
-        do {
-            guard let song = try await resolveSong(for: verifiedTrack) else {
-                return ResolvedTrackContext(
-                    verifiedTrack: verifiedTrack,
-                    song: nil,
-                    membership: .unsorted,
-                    isInLibrary: false,
-                    resolutionNote: "This song is visible, but Music Triage cannot identify it safely enough to write yet."
-                )
-            }
-
-            let isInLibrary = try await librarySong(for: song.id) != nil
-            let membership = try await membershipState(for: song)
-
-            return ResolvedTrackContext(
-                verifiedTrack: verifiedTrack,
-                song: song,
-                membership: membership,
-                isInLibrary: isInLibrary,
-                resolutionNote: nil
-            )
-        } catch {
+        guard let song = await safelyResolveSong(for: verifiedTrack) else {
             return ResolvedTrackContext(
                 verifiedTrack: verifiedTrack,
                 song: nil,
                 membership: .unsorted,
                 isInLibrary: false,
-                resolutionNote: "Music Triage hit a lookup problem and kept actions disabled for safety."
+                resolutionNote: "This song is visible, but Music Triage cannot identify it safely enough to write yet."
             )
         }
+
+        let isInLibrary = await safeLibraryContainment(for: song)
+        let membership = await safeMembershipState(for: song)
+
+        return ResolvedTrackContext(
+            verifiedTrack: verifiedTrack,
+            song: song,
+            membership: membership,
+            isInLibrary: isInLibrary,
+            resolutionNote: nil
+        )
     }
 
     func perform(_ action: TrackActionKind, on context: ResolvedTrackContext) async throws -> ActionOutcome {
@@ -142,6 +132,23 @@ actor MusicTriageService {
         return try await uniqueCatalogSong(for: verifiedTrack.observation)
     }
 
+    private func safelyResolveSong(for verifiedTrack: VerifiedTrack) async -> Song? {
+        if let playbackStoreID = verifiedTrack.observation.playbackStoreID,
+           let song = try? await catalogSong(with: playbackStoreID) {
+            return song
+        }
+
+        if let song = try? await uniqueLibrarySong(for: verifiedTrack.observation) {
+            return song
+        }
+
+        if let song = try? await uniqueCatalogSong(for: verifiedTrack.observation) {
+            return song
+        }
+
+        return nil
+    }
+
     private func catalogSong(with playbackStoreID: String) async throws -> Song? {
         var request = MusicCatalogResourceRequest<Song>(
             matching: \.id,
@@ -199,6 +206,14 @@ actor MusicTriageService {
         )
     }
 
+    private func safeMembershipState(for song: Song) async -> MembershipState {
+        do {
+            return try await membershipState(for: song)
+        } catch {
+            return .unsorted
+        }
+    }
+
     private func playlist(_ playlist: Playlist?, contains song: Song) async throws -> Bool {
         guard let playlist else { return false }
         let hydrated = try await playlist.with([.entries])
@@ -213,6 +228,14 @@ actor MusicTriageService {
             return true
         } catch let error as MusicLibrary.Error where error == .itemAlreadyAdded {
             return true
+        }
+    }
+
+    private func safeLibraryContainment(for song: Song) async -> Bool {
+        do {
+            return try await librarySong(for: song.id) != nil
+        } catch {
+            return false
         }
     }
 

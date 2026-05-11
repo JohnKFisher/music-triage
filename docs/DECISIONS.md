@@ -16,3 +16,13 @@ Status: approved
 Status: approved
 
 V1 uses fixed playlist names (`Keepers` and `Music Triage`), chooses one exact-match playlist deterministically when duplicates exist, and remembers that stable playlist ID for future writes. Custom naming is explicitly deferred.
+
+## 2026-05-11 — On-device tagging stays enabled when enrichment fails
+Status: approved
+
+If Music Triage can safely resolve the current song itself, tagging stays available even when library-membership or playlist-membership enrichment fails. Those secondary lookup misses should degrade pills and helper text, not block the core action path.
+
+## 2026-05-11 — iPhone builds use native launch and icon assets
+Status: approved
+
+The app now ships with a real launch storyboard and asset-catalog app icon instead of relying on a resource-only shell. This avoids real-device compatibility letterboxing and blank icons on modern iPhones.

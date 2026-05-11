@@ -5,48 +5,53 @@ struct MainScreenView: View {
     @State private var showAbout = false
 
     var body: some View {
-        ZStack {
-            NightDriveBackground()
-                .ignoresSafeArea()
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                NightDriveBackground()
+                    .ignoresSafeArea()
 
-            if let displayTrack = model.displayTrackInfo {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 18) {
-                    header
-                    artworkCard
+                if let displayTrack = model.displayTrackInfo {
+                    VStack(spacing: metrics(for: proxy.size).verticalSpacing) {
+                        header
+                        artworkCard(sideLength: metrics(for: proxy.size).artworkSize)
                         metadata(displayTrack)
-                    membershipRow
-                    actionArea
-                    utilityArea(displayTrack)
+                        membershipRow
+                        Spacer(minLength: 0)
+                        actionArea(cardHeight: metrics(for: proxy.size).actionPadHeight)
+                        utilityArea(displayTrack, wheelDiameter: metrics(for: proxy.size).clickwheelDiameter)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .padding(.horizontal, 20)
+                    .padding(.top, max(proxy.safeAreaInsets.top, 16))
+                    .padding(.bottom, max(proxy.safeAreaInsets.bottom, 18))
+                } else {
+                    EmptyStateCard()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(24)
                 }
-                .padding(.horizontal, 20)
-                    .padding(.vertical, 18)
+
+                if let toast = model.toast {
+                    VStack {
+                        ToastBanner(toast: toast)
+                        Spacer()
+                    }
+                    .padding(.top, max(proxy.safeAreaInsets.top, 18))
+                    .padding(.horizontal, 18)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
-            } else {
-                EmptyStateCard()
-                    .padding(24)
-            }
 
-            if let toast = model.toast {
-                VStack {
-                    ToastBanner(toast: toast)
-                    Spacer()
+                if model.showDebugOverlay {
+                    DebugOverlay(lines: model.debugLines)
+                        .padding()
+                        .transition(.opacity)
                 }
-                .padding(.top, 18)
-                .padding(.horizontal, 18)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
 
-            if model.showDebugOverlay {
-                DebugOverlay(lines: model.debugLines)
-                    .padding()
-                    .transition(.opacity)
+                if model.isSplashVisible {
+                    SplashOverlayView()
+                        .transition(.opacity)
+                }
             }
-
-            if model.isSplashVisible {
-                SplashOverlayView()
-                    .transition(.opacity)
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .sheet(isPresented: $model.showOnboarding) {
             OnboardingSheet {
@@ -96,15 +101,17 @@ struct MainScreenView: View {
         }
     }
 
-    private var artworkCard: some View {
+    private func artworkCard(sideLength: CGFloat) -> some View {
         ZStack(alignment: .bottomTrailing) {
             ArtworkView(image: model.displayedArtwork, isDimmed: model.displayTrackInfo?.isDimmed ?? false)
+                .frame(width: sideLength, height: sideLength)
 
             if let displayTrack = model.displayTrackInfo {
                 PlaybackStamp(isPlaying: displayTrack.isPlaying)
                     .padding(14)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func metadata(_ displayTrack: DisplayTrackInfo) -> some View {
@@ -166,7 +173,7 @@ struct MainScreenView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var actionArea: some View {
+    private func actionArea(cardHeight: CGFloat) -> some View {
         VStack(spacing: 14) {
             if model.canShowPermissionRecovery {
                 PermissionRecoveryCard(
@@ -180,6 +187,7 @@ struct MainScreenView: View {
                         subtitle: "Keepers + library",
                         symbolName: "checkmark.circle.fill",
                         tint: Color.neonGreen,
+                        minHeight: cardHeight,
                         isDisabled: !model.canTrigger(.keep),
                         isEmphasized: model.emphasizedAction == .keep,
                         tapAction: { model.handlePrimaryAction(.keep) }
@@ -190,6 +198,7 @@ struct MainScreenView: View {
                         subtitle: "Send to triage",
                         symbolName: "minus.circle.fill",
                         tint: Color.neonRed,
+                        minHeight: cardHeight,
                         isDisabled: !model.canTrigger(.delete),
                         isEmphasized: model.emphasizedAction == .delete,
                         tapAction: { model.handlePrimaryAction(.delete) }
@@ -199,11 +208,12 @@ struct MainScreenView: View {
         }
     }
 
-    private func utilityArea(_ displayTrack: DisplayTrackInfo) -> some View {
+    private func utilityArea(_ displayTrack: DisplayTrackInfo, wheelDiameter: CGFloat) -> some View {
         NeonPanel {
             VStack(spacing: 16) {
                 ClickwheelTransportCluster(
                     centerSymbolName: displayTrack.isPlaying ? "pause.fill" : "play.fill",
+                    diameter: wheelDiameter,
                     previousAction: model.skipPrevious,
                     centerAction: model.playPause,
                     nextAction: model.skipNext
@@ -216,6 +226,16 @@ struct MainScreenView: View {
                 )
             }
         }
+    }
+
+    private func metrics(for size: CGSize) -> ScreenMetrics {
+        let compactHeight = size.height < 760
+        return ScreenMetrics(
+            artworkSize: min(size.width - 40, compactHeight ? 210 : 250),
+            actionPadHeight: compactHeight ? 122 : 140,
+            clickwheelDiameter: compactHeight ? 138 : 156,
+            verticalSpacing: compactHeight ? 12 : 16
+        )
     }
 
     private var isVerifying: Bool {
@@ -231,4 +251,11 @@ struct MainScreenView: View {
         let seconds = Int(value) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
+}
+
+private struct ScreenMetrics {
+    let artworkSize: CGFloat
+    let actionPadHeight: CGFloat
+    let clickwheelDiameter: CGFloat
+    let verticalSpacing: CGFloat
 }

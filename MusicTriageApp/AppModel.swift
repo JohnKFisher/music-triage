@@ -243,7 +243,10 @@ final class AppModel: ObservableObject {
         switch verificationSurface {
         case .ready(let verified):
             if permissionStatus == .authorized {
-                return resolvedContext?.verifiedTrack.identity == verified.identity
+                guard let resolvedContext, resolvedContext.verifiedTrack.identity == verified.identity else {
+                    return false
+                }
+                return resolvedContext.song != nil
             }
             return permissionStatus == .notDetermined
         default:
