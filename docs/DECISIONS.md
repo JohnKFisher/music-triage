@@ -42,7 +42,7 @@ Status: approved
 
 The now-playing progress strip is now an active scrubber, and the app is portrait-only for the time being. Landscape support is intentionally paused rather than redesigned in place.
 
-## 2026-05-11 — Non-library Apple Music tracks can be kept but not deleted
+## 2026-05-11 — Non-library Apple Music tracks add to library but do not hit Keepers
 Status: approved
 
-When the app can safely resolve a currently playing Apple Music catalog track that is not yet in the user’s library, `KEEP` stays enabled so it can add that song to the library and Keepers. `DELETE` is intentionally disabled for those tracks even though a playlist-only tag would be technically possible, because the desired workflow is to delete only from already-owned library songs.
+When the app can safely resolve a currently playing Apple Music catalog track that is not yet in the user’s library, the left action becomes yellow `ADD` and only adds the song to the library. Library tracks keep the existing green `KEEP` behavior that writes to Keepers, and `DELETE` remains intentionally disabled for non-library tracks.

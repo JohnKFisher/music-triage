@@ -24,11 +24,19 @@ public enum LogicalPlaylist: String, CaseIterable, Sendable {
 }
 
 public enum TrackActionKind: String, Sendable {
+    case add
     case keep
     case delete
 
     public var displayLabel: String {
-        rawValue.uppercased()
+        switch self {
+        case .add:
+            "ADD"
+        case .keep:
+            "KEEP"
+        case .delete:
+            "DELETE"
+        }
     }
 }
 
@@ -159,7 +167,7 @@ public struct MembershipState: Equatable, Sendable {
 
 public struct ActionOutcome: Equatable, Sendable {
     public let action: TrackActionKind
-    public let primaryPlaylist: LogicalPlaylist
+    public let primaryPlaylist: LogicalPlaylist?
     public let membershipState: MembershipState
     public let libraryAdded: Bool
     public let cleanupRemoved: Bool
@@ -167,7 +175,7 @@ public struct ActionOutcome: Equatable, Sendable {
 
     public init(
         action: TrackActionKind,
-        primaryPlaylist: LogicalPlaylist,
+        primaryPlaylist: LogicalPlaylist?,
         membershipState: MembershipState,
         libraryAdded: Bool,
         cleanupRemoved: Bool,

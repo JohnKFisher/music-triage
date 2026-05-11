@@ -71,6 +71,17 @@ actor MusicTriageService {
         }
 
         switch action {
+        case .add:
+            let libraryAdded = try await addToLibraryIfNeeded(song: song, isInLibrary: context.isInLibrary)
+            return ActionOutcome(
+                action: .add,
+                primaryPlaylist: nil,
+                membershipState: context.membership,
+                libraryAdded: libraryAdded,
+                cleanupRemoved: false,
+                warnings: []
+            )
+
         case .keep:
             let keepers = try await playlistResolver.resolveWritablePlaylist(for: .keepers)
             do {

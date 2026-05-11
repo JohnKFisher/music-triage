@@ -6,6 +6,7 @@ import UIKit
 
 struct ToastMessage: Identifiable, Equatable {
     enum Style: Equatable {
+        case addSuccess
         case keepSuccess
         case deleteSuccess
         case failure
@@ -242,6 +243,35 @@ final class AppModel: ObservableObject {
         showDebugOverlay = false
     }
 
+    var primaryActionKind: TrackActionKind {
+        guard
+            case .ready(let verified) = verificationSurface,
+            let resolvedContext,
+            resolvedContext.verifiedTrack.identity == verified.identity,
+            resolvedContext.song != nil,
+            !resolvedContext.isInLibrary
+        else {
+            return .keep
+        }
+
+        return .add
+    }
+
+    var primaryActionTitle: String {
+        primaryActionKind.displayLabel
+    }
+
+    var primaryActionSubtitle: String {
+        switch primaryActionKind {
+        case .add:
+            "Library only"
+        case .keep:
+            "Keepers + library"
+        case .delete:
+            "Send to triage"
+        }
+    }
+
     func canTrigger(_ action: TrackActionKind) -> Bool {
         guard displayTrackInfo != nil else { return false }
         if canShowPermissionRecovery { return false }
@@ -272,6 +302,8 @@ final class AppModel: ObservableObject {
 
     func isMatchingMembership(_ action: TrackActionKind) -> Bool {
         switch action {
+        case .add:
+            false
         case .keep:
             currentMembership.isKeeper
         case .delete:
@@ -392,14 +424,24 @@ final class AppModel: ObservableObject {
 
     private func refreshResolvedContext(for verified: VerifiedTrack) {
         if let resolvedContext, resolvedContext.verifiedTrack.identity == verified.identity {
+            if resolvedContext.song != nil {
+                self.resolvedContext = ResolvedTrackContext(
+                    verifiedTrack: verified,
+                    song: resolvedContext.song,
+                    membership: resolvedContext.membership,
+                    isInLibrary: resolvedContext.isInLibrary,
+                    resolutionNote: resolvedContext.resolutionNote
+                )
+                return
+            }
+
             self.resolvedContext = ResolvedTrackContext(
                 verifiedTrack: verified,
-                song: resolvedContext.song,
+                song: nil,
                 membership: resolvedContext.membership,
                 isInLibrary: resolvedContext.isInLibrary,
                 resolutionNote: resolvedContext.resolutionNote
             )
-            return
         }
 
         resolutionTask?.cancel()
@@ -484,7 +526,7 @@ final class AppModel: ObservableObject {
             presentToast(
                 title: "\(action.displayLabel) saved",
                 subtitle: subtitle,
-                style: action == .keep ? .keepSuccess : .deleteSuccess
+                style: toastStyle(for: action)
             )
             triggerFlash(for: action)
             pulse(action)
@@ -539,11 +581,17 @@ final class AppModel: ObservableObject {
 
         switch surface {
         case .ready(let verified):
+            if let resolvedContext, resolvedContext.verifiedTrack.identity == verified.identity, resolvedContext.song == nil {
+                return resolvedContext.resolutionNote ?? "Verified playback. Finishing the song lookup before enabling actions."
+            }
+            if resolvedContext == nil {
+                return "Verified playback. Finishing the song lookup before enabling actions."
+            }
             if let resolvedContext,
                resolvedContext.verifiedTrack.identity == verified.identity,
                resolvedContext.song != nil,
                !resolvedContext.isInLibrary {
-                return "Verified Apple Music track. KEEP can add it to your library; DELETE stays off until it is already in your library."
+                return "Verified Apple Music track. ADD can put it in your library; DELETE stays off until it is already in your library."
             }
             if verified.identity.strength == .fallback {
                 return "Verified cautiously from stable title and artist."
@@ -575,7 +623,7 @@ final class AppModel: ObservableObject {
         flashAction = action
         hideFlashTask?.cancel()
         hideFlashTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(220))
+            try? await Task.sleep(for: .milliseconds(500))
             await MainActor.run {
                 self?.flashAction = nil
             }
@@ -593,6 +641,17 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private func toastStyle(for action: TrackActionKind) -> ToastMessage.Style {
+        switch action {
+        case .add:
+            .addSuccess
+        case .keep:
+            .keepSuccess
+        case .delete:
+            .deleteSuccess
+        }
+    }
+
     private func notifySuccess(for action: TrackActionKind) {
         let impact = UIImpactFeedbackGenerator(style: action == .delete ? .rigid : .heavy)
         impact.prepare()
@@ -601,6 +660,8 @@ final class AppModel: ObservableObject {
         let notification = UINotificationFeedbackGenerator()
         notification.prepare()
         switch action {
+        case .add:
+            notification.notificationOccurred(.success)
         case .keep:
             notification.notificationOccurred(.success)
         case .delete:

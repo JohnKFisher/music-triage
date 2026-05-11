@@ -22,8 +22,8 @@ The main app shape is in place. I will probably still make tweaks and small upda
 
 - Watches the currently playing Apple Music track.
 - Keeps `KEEP` and `DELETE` disabled until the app trusts the current track identity.
-- Sends `KEEP` songs to the `Keepers` playlist.
-- Adds `KEEP` songs to your library if they are trusted Apple Music tracks that are not already there.
+- Sends `KEEP` songs to the `Keepers` playlist when they are already in your library.
+- Switches the left action to yellow `ADD` for trusted Apple Music tracks that are not yet in your library, and that path adds the song to the library only.
 - Sends `DELETE` songs to the `Music Triage` playlist.
 - Disables `DELETE` for tracks that are not already in your library.
 - Tries to clean up the opposite playlist automatically as a best-effort follow-up.
@@ -72,7 +72,7 @@ The app uses `NSAppleMusicUsageDescription` and asks for Apple Music access only
 - This needs a real iPhone to be meaningfully tested. Simulator is not enough for the core behavior.
 - Apple Music access, subscription state, and MusicKit/App ID setup still matter a lot.
 - `DELETE` in V1 does not remove a song from your Apple Music library. It sends the song to the `Music Triage` playlist.
-- `DELETE` is intentionally disabled for non-library tracks, even when `KEEP` can still add that trusted Apple Music song to your library.
+- `DELETE` is intentionally disabled for non-library tracks, and the yellow `ADD` action does not also send those songs to `Keepers`.
 - Playlist cleanup is best-effort and may fail on some user-owned playlists even when the primary tag action succeeds.
 - The app is iPhone-first. Landscape mode is currently disabled, and iPad is not the priority.
 - There is still no polished packaged release flow yet. This is currently a project you run from Xcode.

@@ -435,6 +435,8 @@ struct ToastBanner: View {
 
     var tint: Color {
         switch toast.style {
+        case .addSuccess:
+            .neonAmber
         case .keepSuccess:
             .neonGreen
         case .deleteSuccess:

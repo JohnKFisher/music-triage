@@ -68,12 +68,20 @@ struct MainScreenView: View {
             .presentationDragIndicator(.visible)
         }
         .animation(.easeInOut(duration: 0.24), value: model.toast)
-        .animation(.easeOut(duration: 0.26), value: model.flashAction)
+        .animation(.easeOut(duration: 0.42), value: model.flashAction)
         .animation(.easeInOut(duration: 0.2), value: model.showDebugOverlay)
     }
 
     private func flashOverlay(for action: TrackActionKind) -> some View {
-        let tint = action == .keep ? Color.neonGreen : Color.neonRed
+        let tint: Color
+        switch action {
+        case .add:
+            tint = .neonAmber
+        case .keep:
+            tint = .neonGreen
+        case .delete:
+            tint = .neonRed
+        }
 
         return Rectangle()
             .fill(tint.opacity(0.1))
@@ -219,14 +227,14 @@ struct MainScreenView: View {
             } else {
                 HStack(spacing: 14) {
                     ActionPad(
-                        title: "KEEP",
-                        subtitle: "Keepers + library",
-                        symbolName: "checkmark.circle.fill",
-                        tint: Color.neonGreen,
+                        title: model.primaryActionTitle,
+                        subtitle: model.primaryActionSubtitle,
+                        symbolName: model.primaryActionKind == .add ? "plus.circle.fill" : "checkmark.circle.fill",
+                        tint: model.primaryActionKind == .add ? Color.neonAmber : Color.neonGreen,
                         minHeight: cardHeight,
-                        isDisabled: !model.canTrigger(.keep),
-                        isEmphasized: model.emphasizedAction == .keep,
-                        tapAction: { model.handlePrimaryAction(.keep) }
+                        isDisabled: !model.canTrigger(model.primaryActionKind),
+                        isEmphasized: model.emphasizedAction == model.primaryActionKind,
+                        tapAction: { model.handlePrimaryAction(model.primaryActionKind) }
                     )
 
                     ActionPad(
