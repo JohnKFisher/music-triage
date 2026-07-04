@@ -288,6 +288,8 @@ final class AppModel: ObservableObject {
                 }
 
                 switch action {
+                case .add:
+                    return !resolvedContext.isInLibrary
                 case .keep:
                     return true
                 case .delete:
