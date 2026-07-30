@@ -32,7 +32,8 @@ actor MusicTriageService {
     func resolveContext(
         for verifiedTrack: VerifiedTrack,
         authorizationStatus: MusicAuthorization.Status
-    ) async -> ResolvedTrackContext {
+    ) async throws -> ResolvedTrackContext {
+        try Task.checkCancellation()
         guard authorizationStatus == .authorized else {
             return ResolvedTrackContext(
                 verifiedTrack: verifiedTrack,
@@ -43,7 +44,7 @@ actor MusicTriageService {
             )
         }
 
-        guard let song = await safelyResolveSong(for: verifiedTrack) else {
+        guard let song = try await safelyResolveSong(for: verifiedTrack) else {
             return ResolvedTrackContext(
                 verifiedTrack: verifiedTrack,
                 song: nil,
@@ -53,8 +54,11 @@ actor MusicTriageService {
             )
         }
 
-        let isInLibrary = await safeLibraryContainment(for: song)
-        let membership = await safeMembershipState(for: song)
+        try Task.checkCancellation()
+        let isInLibrary = try await safeLibraryContainment(for: song)
+        try Task.checkCancellation()
+        let membership = try await safeMembershipState(for: song)
+        try Task.checkCancellation()
 
         return ResolvedTrackContext(
             verifiedTrack: verifiedTrack,
@@ -146,23 +150,49 @@ actor MusicTriageService {
         return try await uniqueCatalogSong(for: verifiedTrack.observation)
     }
 
-    private func safelyResolveSong(for verifiedTrack: VerifiedTrack) async -> Song? {
-        if let playbackStoreID = verifiedTrack.observation.playbackStoreID,
-           let song = try? await catalogSong(with: playbackStoreID) {
-            return song
+    private func safelyResolveSong(for verifiedTrack: VerifiedTrack) async throws -> Song? {
+        if let playbackStoreID = verifiedTrack.observation.playbackStoreID {
+            do {
+                let song = try await catalogSong(with: playbackStoreID)
+                try Task.checkCancellation()
+                if let song { return song }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                try Task.checkCancellation()
+            }
         }
 
-        if let playbackStoreID = verifiedTrack.observation.playbackStoreID,
-           let song = try? await catalogSongFromDataRequest(with: playbackStoreID) {
-            return song
+        if let playbackStoreID = verifiedTrack.observation.playbackStoreID {
+            do {
+                let song = try await catalogSongFromDataRequest(with: playbackStoreID)
+                try Task.checkCancellation()
+                if let song { return song }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                try Task.checkCancellation()
+            }
         }
 
-        if let song = try? await uniqueLibrarySong(for: verifiedTrack.observation) {
-            return song
+        do {
+            let song = try await uniqueLibrarySong(for: verifiedTrack.observation)
+            try Task.checkCancellation()
+            if let song { return song }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            try Task.checkCancellation()
         }
 
-        if let song = try? await uniqueCatalogSong(for: verifiedTrack.observation) {
-            return song
+        do {
+            let song = try await uniqueCatalogSong(for: verifiedTrack.observation)
+            try Task.checkCancellation()
+            if let song { return song }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            try Task.checkCancellation()
         }
 
         return nil
@@ -243,10 +273,17 @@ actor MusicTriageService {
         )
     }
 
-    private func safeMembershipState(for song: Song) async -> MembershipState {
+    private func safeMembershipState(for song: Song) async throws -> MembershipState {
         do {
-            return try await membershipState(for: song)
+            try Task.checkCancellation()
+            let membership = try await membershipState(for: song)
+            try Task.checkCancellation()
+            return membership
         } catch {
+            if error is CancellationError {
+                throw CancellationError()
+            }
+            try Task.checkCancellation()
             return .unsorted
         }
     }
@@ -268,10 +305,17 @@ actor MusicTriageService {
         }
     }
 
-    private func safeLibraryContainment(for song: Song) async -> Bool {
+    private func safeLibraryContainment(for song: Song) async throws -> Bool {
         do {
-            return try await librarySong(for: song.id) != nil
+            try Task.checkCancellation()
+            let isInLibrary = try await librarySong(for: song.id) != nil
+            try Task.checkCancellation()
+            return isInLibrary
         } catch {
+            if error is CancellationError {
+                throw CancellationError()
+            }
+            try Task.checkCancellation()
             return false
         }
     }

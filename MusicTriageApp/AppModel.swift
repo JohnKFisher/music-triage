@@ -66,10 +66,20 @@ final class AppModel: ObservableObject {
     private var notificationTokens: [NSObjectProtocol] = []
     private var progressTimer: AnyCancellable?
     private var resolutionTask: Task<Void, Never>?
+    private var resolutionIdentity: TrackIdentity?
+    private var resolutionAuthorizationStatus: MusicAuthorization.Status?
+    private var resolutionRequestToken = UUID()
+    private var tagCoordinator = TagOperationCoordinator()
+    private var tagOperationTask: Task<Void, Never>?
+    private var autoSkipTask: Task<Void, Never>?
+    private var autoSkipToken: UUID?
     private var hideToastTask: Task<Void, Never>?
     private var hidePulseTask: Task<Void, Never>?
     private var hideFlashTask: Task<Void, Never>?
     private var hideSplashTask: Task<Void, Never>?
+    private var toastPresentationToken = UUID()
+    private var pulsePresentationToken = UUID()
+    private var flashPresentationToken = UUID()
     private var cooldownUntil: Date?
     private var hasStarted = false
     private var currentObservation: PlayerObservation?
@@ -85,6 +95,19 @@ final class AppModel: ObservableObject {
         self.service = MusicTriageService()
         self.autoSkipEnabled = defaults.object(forKey: Self.autoSkipKey) as? Bool ?? false
         self.showOnboarding = !defaults.bool(forKey: Self.onboardingKey)
+    }
+
+    isolated deinit {
+        notificationTokens.forEach(NotificationCenter.default.removeObserver)
+        player.endGeneratingPlaybackNotifications()
+        progressTimer?.cancel()
+        resolutionTask?.cancel()
+        tagOperationTask?.cancel()
+        autoSkipTask?.cancel()
+        hideToastTask?.cancel()
+        hidePulseTask?.cancel()
+        hideFlashTask?.cancel()
+        hideSplashTask?.cancel()
     }
 
     func start() {
@@ -124,7 +147,12 @@ final class AppModel: ObservableObject {
             }
 
         hideSplashTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1.5))
+            do {
+                try await Task.sleep(for: .seconds(1.5))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 self?.isSplashVisible = false
             }
@@ -136,6 +164,11 @@ final class AppModel: ObservableObject {
 
     func handleScenePhase(_ phase: ScenePhase) {
         sceneIsActive = phase == .active
+        if phase == .active {
+            refreshAuthorizationStatusOnActivation()
+        } else {
+            cancelAutoSkip()
+        }
         updateIdleTimer()
     }
 
@@ -233,6 +266,9 @@ final class AppModel: ObservableObject {
     func setAutoSkipEnabled(_ enabled: Bool) {
         autoSkipEnabled = enabled
         defaults.set(enabled, forKey: Self.autoSkipKey)
+        if !enabled {
+            cancelAutoSkip()
+        }
     }
 
     func toggleDebugOverlay() {
@@ -274,6 +310,7 @@ final class AppModel: ObservableObject {
 
     func canTrigger(_ action: TrackActionKind) -> Bool {
         guard displayTrackInfo != nil else { return false }
+        guard !tagCoordinator.isBusy else { return false }
         if canShowPermissionRecovery { return false }
         if let cooldownUntil, cooldownUntil > .now { return false }
 
@@ -314,8 +351,18 @@ final class AppModel: ObservableObject {
     }
 
     func handlePrimaryAction(_ action: TrackActionKind) {
-        Task { [weak self] in
-            await self?.performPrimaryAction(action)
+        guard
+            canTrigger(action),
+            case .ready(let verifiedTrack) = verificationSurface,
+            let operation = tagCoordinator.begin(action: action, identity: verifiedTrack.identity)
+        else {
+            return
+        }
+
+        cancelAutoSkip()
+        activeActionCount = 1
+        tagOperationTask = Task { [weak self, operation] in
+            await self?.performPrimaryAction(operation)
         }
     }
 
@@ -325,6 +372,7 @@ final class AppModel: ObservableObject {
     }
 
     func playPause() {
+        cancelAutoSkip()
         if player.playbackState == .playing {
             player.pause()
         } else {
@@ -334,16 +382,19 @@ final class AppModel: ObservableObject {
     }
 
     func skipNext() {
+        cancelAutoSkip()
         player.skipToNextItem()
         refreshPlaybackObservation()
     }
 
     func skipPrevious() {
+        cancelAutoSkip()
         player.skipToPreviousItem()
         refreshPlaybackObservation()
     }
 
     func seek(to progress: Double) {
+        cancelAutoSkip()
         guard let currentObservation else { return }
         let duration = currentObservation.snapshot.duration
         guard duration.isFinite, duration > 0 else { return }
@@ -378,6 +429,8 @@ final class AppModel: ObservableObject {
     private func refreshPlaybackObservation() {
         let now = Date()
         guard let item = player.nowPlayingItem else {
+            cancelAutoSkip()
+            invalidateResolution()
             currentObservation = nil
             currentArtwork = nil
             verificationSurface = verificationEngine.process(snapshot: nil, now: now)
@@ -399,6 +452,14 @@ final class AppModel: ObservableObject {
             capturedAt: now
         )
 
+        if let previous = currentObservation?.snapshot,
+           previous.derivedIdentity != snapshot.derivedIdentity
+            || previous.metadataSignature != snapshot.metadataSignature
+            || previous.isPlaying != snapshot.isPlaying {
+            cancelAutoSkip()
+            invalidateResolution()
+        }
+
         let artwork = item.artwork?.image(at: CGSize(width: 900, height: 900))
         currentObservation = PlayerObservation(snapshot: snapshot, artwork: artwork)
         currentArtwork = artwork
@@ -416,7 +477,8 @@ final class AppModel: ObservableObject {
         case .unavailable(let lastConfirmed):
             preserveContextForUnavailableState(lastConfirmed: lastConfirmed)
         case .verifying(let observed, _, _), .ambiguous(let observed, _, _):
-            if resolvedContext?.verifiedTrack.identity != observed.derivedIdentity {
+            if resolvedContext?.verifiedTrack.identity != observed.derivedIdentity
+                || resolvedContext?.verifiedTrack.observation.metadataSignature != observed.metadataSignature {
                 resolvedContext = nil
             }
         }
@@ -424,8 +486,10 @@ final class AppModel: ObservableObject {
         updateIdleTimer()
     }
 
-    private func refreshResolvedContext(for verified: VerifiedTrack) {
-        if let resolvedContext, resolvedContext.verifiedTrack.identity == verified.identity {
+    private func refreshResolvedContext(for verified: VerifiedTrack, force: Bool = false) {
+        if let resolvedContext,
+           resolvedContext.verifiedTrack.identity == verified.identity,
+           resolvedContext.verifiedTrack.observation.metadataSignature == verified.observation.metadataSignature {
             if resolvedContext.song != nil {
                 self.resolvedContext = ResolvedTrackContext(
                     verifiedTrack: verified,
@@ -436,26 +500,61 @@ final class AppModel: ObservableObject {
                 )
                 return
             }
+        } else if resolvedContext != nil {
+            self.resolvedContext = nil
+        }
 
-            self.resolvedContext = ResolvedTrackContext(
-                verifiedTrack: verified,
-                song: nil,
-                membership: resolvedContext.membership,
-                isInLibrary: resolvedContext.isInLibrary,
-                resolutionNote: resolvedContext.resolutionNote
-            )
+        let authorizationStatus = MusicAuthorization.currentStatus
+        guard force
+            || resolutionIdentity != verified.identity
+            || resolutionAuthorizationStatus != authorizationStatus
+        else {
+            return
         }
 
         resolutionTask?.cancel()
-        resolutionTask = Task { [service] in
-            let context = await service.resolveContext(for: verified, authorizationStatus: MusicAuthorization.currentStatus)
-            await MainActor.run {
-                guard !Task.isCancelled else { return }
-                if case .ready(let currentVerified) = self.verificationSurface, currentVerified.identity == verified.identity {
+        let token = UUID()
+        resolutionRequestToken = token
+        resolutionIdentity = verified.identity
+        resolutionAuthorizationStatus = authorizationStatus
+        resolutionTask = Task { [weak self, service, verified, authorizationStatus] in
+            do {
+                try Task.checkCancellation()
+                let context = try await service.resolveContext(
+                    for: verified,
+                    authorizationStatus: authorizationStatus
+                )
+                try Task.checkCancellation()
+                await MainActor.run { [weak self] in
+                    guard let self,
+                          !Task.isCancelled,
+                          self.resolutionRequestToken == token,
+                          case .ready(let currentVerified) = self.verificationSurface,
+                          currentVerified.identity == verified.identity
+                    else {
+                        return
+                    }
+
                     self.resolvedContext = context
+                    self.resolutionTask = nil
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                await MainActor.run { [weak self] in
+                    guard let self, self.resolutionRequestToken == token else { return }
+                    self.resolutionTask = nil
                 }
             }
         }
+    }
+
+    private func invalidateResolution() {
+        resolutionTask?.cancel()
+        resolutionTask = nil
+        resolutionIdentity = nil
+        resolutionAuthorizationStatus = nil
+        resolutionRequestToken = UUID()
     }
 
     private func preserveContextForUnavailableState(lastConfirmed: VerifiedTrack? = nil) {
@@ -475,44 +574,42 @@ final class AppModel: ObservableObject {
         )
     }
 
-    private func performPrimaryAction(_ action: TrackActionKind) async {
-        let granted = await ensureAuthorizationForAction()
-        guard granted else { return }
-
-        guard case .ready(let verifiedTrack) = verificationSurface else { return }
-
-        if resolvedContext?.verifiedTrack.identity != verifiedTrack.identity {
-            refreshResolvedContext(for: verifiedTrack)
-            try? await Task.sleep(for: .milliseconds(250))
+    private func performPrimaryAction(_ operation: TagOperationCoordinator.Operation) async {
+        defer {
+            finishTagOperation(operation)
         }
 
-        guard let resolvedContext else {
+        guard isCurrentTagOperation(operation) else { return }
+        guard await ensureAuthorizationForAction(for: operation) else { return }
+        guard isCurrentTagOperation(operation) else { return }
+        guard let resolvedContext,
+              resolvedContext.verifiedTrack.identity == operation.identity,
+              resolvedContext.song != nil else {
             presentToast(
-                title: "Song not safe to tag yet",
-                subtitle: "Music Triage could not resolve this track cleanly enough to write to your library.",
-                style: .failure
+                title: "Song lookup still finishing",
+                subtitle: "Hold again once Music Triage enables the action.",
+                style: .neutral
             )
-            notifyFailure()
             return
         }
 
-        if isMatchingMembership(action) {
+        if isMatchingMembership(operation.action, membership: resolvedContext.membership) {
             presentToast(
-                title: "\(action.displayLabel) reconfirmed",
+                title: "\(operation.action.displayLabel) reconfirmed",
                 subtitle: "Already tagged for \(resolvedContext.verifiedTrack.observation.title).",
                 style: .neutral
             )
-            pulse(action)
-            notifySuccess(for: action)
+            pulse(operation.action)
+            notifySuccess(for: operation.action)
             return
         }
 
-        activeActionCount += 1
         let trackTitle = resolvedContext.verifiedTrack.observation.title
 
         do {
-            let outcome = try await service.perform(action, on: resolvedContext)
-            activeActionCount -= 1
+            let outcome = try await service.perform(operation.action, on: resolvedContext)
+            guard !Task.isCancelled, isCurrentTagOperation(operation) else { return }
+
             cooldownUntil = Date().addingTimeInterval(1)
             if self.resolvedContext?.verifiedTrack.identity == resolvedContext.verifiedTrack.identity {
                 self.resolvedContext = ResolvedTrackContext(
@@ -526,27 +623,21 @@ final class AppModel: ObservableObject {
 
             let subtitle = outcome.warnings.first
             presentToast(
-                title: "\(action.displayLabel) saved",
+                title: "\(operation.action.displayLabel) saved",
                 subtitle: subtitle,
-                style: toastStyle(for: action)
+                style: toastStyle(for: operation.action)
             )
-            triggerFlash(for: action)
-            pulse(action)
-            notifySuccess(for: action)
+            triggerFlash(for: operation.action)
+            pulse(operation.action)
+            notifySuccess(for: operation.action)
 
             if autoSkipEnabled {
-                Task { [weak self] in
-                    try? await Task.sleep(for: .milliseconds(650))
-                    await MainActor.run {
-                        self?.player.skipToNextItem()
-                        self?.refreshPlaybackObservation()
-                    }
-                }
+                scheduleAutoSkip(for: operation, identity: resolvedContext.verifiedTrack.identity)
             }
         } catch {
-            activeActionCount -= 1
+            guard !Task.isCancelled, isCurrentTagOperation(operation) else { return }
             presentToast(
-                title: "\(action.displayLabel) failed for \(trackTitle)",
+                title: "\(operation.action.displayLabel) failed for \(trackTitle)",
                 subtitle: error.localizedDescription,
                 style: .failure
             )
@@ -554,19 +645,60 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func ensureAuthorizationForAction() async -> Bool {
+    private func finishTagOperation(_ operation: TagOperationCoordinator.Operation) {
+        guard tagCoordinator.finish(operation) else { return }
+        activeActionCount = 0
+        tagOperationTask = nil
+    }
+
+    private func isCurrentTagOperation(_ operation: TagOperationCoordinator.Operation) -> Bool {
+        guard
+            tagCoordinator.owns(operation),
+            case .ready(let verifiedTrack) = verificationSurface
+        else {
+            return false
+        }
+
+        return tagCoordinator.owns(operation, for: verifiedTrack.identity)
+    }
+
+    private func isMatchingMembership(
+        _ action: TrackActionKind,
+        membership: MembershipState
+    ) -> Bool {
+        switch action {
+        case .add:
+            false
+        case .keep:
+            membership.isKeeper
+        case .delete:
+            membership.isTriaged
+        }
+    }
+
+    private func ensureAuthorizationForAction(
+        for operation: TagOperationCoordinator.Operation
+    ) async -> Bool {
+        guard isCurrentTagOperation(operation) else { return false }
+
         permissionStatus = MusicAuthorization.currentStatus
         switch permissionStatus {
         case .authorized:
             return true
         case .notDetermined:
             let status = await service.requestAuthorization()
+            guard isCurrentTagOperation(operation) else { return false }
             permissionStatus = status
             if status == .authorized {
-                if case .ready(let verifiedTrack) = verificationSurface {
-                    refreshResolvedContext(for: verifiedTrack)
-                }
-                return true
+                guard case .ready(let verifiedTrack) = verificationSurface else { return false }
+                resolvedContext = nil
+                invalidateResolution()
+                refreshResolvedContext(for: verifiedTrack, force: true)
+                presentToast(
+                    title: "Apple Music access enabled",
+                    subtitle: "Hold again once the song lookup finishes.",
+                    style: .neutral
+                )
             }
             return false
         case .denied, .restricted:
@@ -576,7 +708,84 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private func refreshAuthorizationStatusOnActivation() {
+        let latestStatus = MusicAuthorization.currentStatus
+        let statusChanged = permissionStatus != latestStatus
+        permissionStatus = latestStatus
+
+        guard statusChanged else { return }
+
+        invalidateResolution()
+        guard case .ready(let verifiedTrack) = verificationSurface else {
+            resolvedContext = nil
+            return
+        }
+
+        resolvedContext = nil
+        if latestStatus == .authorized {
+            refreshResolvedContext(for: verifiedTrack, force: true)
+        }
+    }
+
+    private func scheduleAutoSkip(
+        for operation: TagOperationCoordinator.Operation,
+        identity: TrackIdentity
+    ) {
+        guard sceneIsActive else { return }
+        cancelAutoSkip()
+        autoSkipToken = operation.token
+        autoSkipTask = Task { [weak self, operation, identity] in
+            do {
+                try await Task.sleep(for: .milliseconds(650))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                self?.completeAutoSkip(for: operation.token, identity: identity)
+            }
+        }
+    }
+
+    private func completeAutoSkip(for token: UUID, identity: TrackIdentity) {
+        guard autoSkipToken == token, sceneIsActive else {
+            autoSkipTask = nil
+            autoSkipToken = nil
+            return
+        }
+
+        // Re-sample the player immediately before acting so a delayed or
+        // missing notification cannot make this task skip a newer song.
+        refreshPlaybackObservation()
+        guard
+            autoSkipToken == token,
+            sceneIsActive,
+            case .ready(let verifiedTrack) = verificationSurface,
+            verifiedTrack.identity == identity
+        else {
+            autoSkipTask = nil
+            autoSkipToken = nil
+            return
+        }
+
+        autoSkipTask = nil
+        autoSkipToken = nil
+        player.skipToNextItem()
+        refreshPlaybackObservation()
+    }
+
+    private func cancelAutoSkip() {
+        autoSkipTask?.cancel()
+        autoSkipTask = nil
+        autoSkipToken = nil
+    }
+
     private func helperText(for surface: VerificationSurface, resolutionNote: String?) -> String {
+        if tagCoordinator.isBusy {
+            return "Saving this tag. Actions are temporarily disabled."
+        }
+
         if let resolutionNote, !resolutionNote.isEmpty {
             return resolutionNote
         }
@@ -611,33 +820,57 @@ final class AppModel: ObservableObject {
     }
 
     private func pulse(_ action: TrackActionKind) {
-        emphasizedAction = action
+        let token = UUID()
+        pulsePresentationToken = token
         hidePulseTask?.cancel()
-        hidePulseTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(900))
-            await MainActor.run {
+        emphasizedAction = action
+        hidePulseTask = Task { [weak self, token] in
+            do {
+                try await Task.sleep(for: .milliseconds(900))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard self?.pulsePresentationToken == token else { return }
                 self?.emphasizedAction = nil
             }
         }
     }
 
     private func triggerFlash(for action: TrackActionKind) {
-        flashAction = action
+        let token = UUID()
+        flashPresentationToken = token
         hideFlashTask?.cancel()
-        hideFlashTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(500))
-            await MainActor.run {
+        flashAction = action
+        hideFlashTask = Task { [weak self, token] in
+            do {
+                try await Task.sleep(for: .milliseconds(500))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard self?.flashPresentationToken == token else { return }
                 self?.flashAction = nil
             }
         }
     }
 
     private func presentToast(title: String, subtitle: String?, style: ToastMessage.Style) {
-        toast = ToastMessage(title: title, subtitle: subtitle, style: style)
+        let token = UUID()
+        toastPresentationToken = token
         hideToastTask?.cancel()
-        hideToastTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2.4))
-            await MainActor.run {
+        toast = ToastMessage(title: title, subtitle: subtitle, style: style)
+        hideToastTask = Task { [weak self, token] in
+            do {
+                try await Task.sleep(for: .seconds(2.4))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await MainActor.run { [weak self] in
+                guard self?.toastPresentationToken == token else { return }
                 self?.toast = nil
             }
         }

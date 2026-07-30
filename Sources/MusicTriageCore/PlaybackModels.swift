@@ -40,6 +40,53 @@ public enum TrackActionKind: String, Sendable {
     }
 }
 
+public struct TagOperationCoordinator: Sendable {
+    public struct Operation: Equatable, Sendable {
+        public let token: UUID
+        public let action: TrackActionKind
+        public let identity: TrackIdentity
+
+        fileprivate init(action: TrackActionKind, identity: TrackIdentity) {
+            self.token = UUID()
+            self.action = action
+            self.identity = identity
+        }
+    }
+
+    private var activeOperation: Operation?
+
+    public init() {}
+
+    public var isBusy: Bool {
+        activeOperation != nil
+    }
+
+    @discardableResult
+    public mutating func begin(action: TrackActionKind, identity: TrackIdentity) -> Operation? {
+        guard activeOperation == nil else { return nil }
+
+        let operation = Operation(action: action, identity: identity)
+        activeOperation = operation
+        return operation
+    }
+
+    @discardableResult
+    public mutating func finish(_ operation: Operation) -> Bool {
+        guard activeOperation == operation else { return false }
+
+        activeOperation = nil
+        return true
+    }
+
+    public func owns(_ operation: Operation) -> Bool {
+        activeOperation == operation
+    }
+
+    public func owns(_ operation: Operation, for identity: TrackIdentity) -> Bool {
+        activeOperation == operation && operation.identity == identity
+    }
+}
+
 public enum TrackIdentityStrength: String, Sendable {
     case strong
     case fallback

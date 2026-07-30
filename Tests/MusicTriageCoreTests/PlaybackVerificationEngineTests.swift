@@ -4,6 +4,49 @@ import Testing
 
 struct PlaybackVerificationEngineTests {
     @Test
+    func tagOperationsAreSingleFlightAndIdentityBound() {
+        var coordinator = TagOperationCoordinator()
+        let identity = TrackIdentity(rawValue: "store:123", strength: .strong)
+        let otherIdentity = TrackIdentity(rawValue: "store:456", strength: .strong)
+
+        let first = coordinator.begin(action: .keep, identity: identity)
+
+        guard let first else {
+            Issue.record("Expected the first tag operation to start.")
+            return
+        }
+
+        #expect(coordinator.isBusy)
+        #expect(coordinator.owns(first, for: identity))
+        #expect(!coordinator.owns(first, for: otherIdentity))
+        #expect(coordinator.begin(action: .delete, identity: identity) == nil)
+    }
+
+    @Test
+    func staleOperationCannotFinishNewOperation() {
+        var coordinator = TagOperationCoordinator()
+        let firstIdentity = TrackIdentity(rawValue: "store:one", strength: .strong)
+        let secondIdentity = TrackIdentity(rawValue: "store:two", strength: .strong)
+
+        guard let first = coordinator.begin(action: .keep, identity: firstIdentity) else {
+            Issue.record("Expected the first tag operation to start.")
+            return
+        }
+
+        let firstFinished = coordinator.finish(first)
+        #expect(firstFinished)
+        guard let second = coordinator.begin(action: .delete, identity: secondIdentity) else {
+            Issue.record("Expected a new tag operation after the first finished.")
+            return
+        }
+
+        let staleOperationFinished = coordinator.finish(first)
+        #expect(!staleOperationFinished)
+        #expect(coordinator.owns(second, for: secondIdentity))
+        #expect(coordinator.isBusy)
+    }
+
+    @Test
     func strongIdentityConfirmsAfterOneSecond() {
         var engine = PlaybackVerificationEngine()
         let start = Date(timeIntervalSinceReferenceDate: 100)

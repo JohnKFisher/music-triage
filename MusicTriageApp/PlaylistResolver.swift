@@ -2,7 +2,13 @@ import Foundation
 import MusicKit
 
 actor PlaylistResolver {
+    private struct PendingCreation {
+        let token: UUID
+        let task: Task<Playlist, Error>
+    }
+
     private let defaults = UserDefaults.standard
+    private var pendingCreations: [LogicalPlaylist: PendingCreation] = [:]
 
     func locateExistingPlaylist(for logicalPlaylist: LogicalPlaylist) async throws -> Playlist? {
         if let storedID = defaults.string(forKey: logicalPlaylist.storageKey),
@@ -20,13 +26,53 @@ actor PlaylistResolver {
     }
 
     func resolveWritablePlaylist(for logicalPlaylist: LogicalPlaylist) async throws -> Playlist {
+        if let pending = pendingCreations[logicalPlaylist] {
+            return try await awaitPendingCreation(pending, for: logicalPlaylist)
+        }
+
+        let token = UUID()
+        let task = Task { [self] in
+            try await provisionPlaylist(for: logicalPlaylist)
+        }
+        let pending = PendingCreation(token: token, task: task)
+        pendingCreations[logicalPlaylist] = pending
+
+        return try await awaitPendingCreation(pending, for: logicalPlaylist)
+    }
+
+    private func provisionPlaylist(for logicalPlaylist: LogicalPlaylist) async throws -> Playlist {
         if let existing = try await locateExistingPlaylist(for: logicalPlaylist) {
             return existing
         }
 
         let created = try await MusicLibrary.shared.createPlaylist(name: logicalPlaylist.displayName)
-        defaults.set(created.id.rawValue, forKey: logicalPlaylist.storageKey)
+
+        // A playlist may have appeared while the create request was in flight.
+        // Prefer the deterministic existing choice and leave any duplicate untouched.
+        if let existing = try await locateExistingPlaylist(for: logicalPlaylist) {
+            return existing
+        }
+
         return created
+    }
+
+    private func awaitPendingCreation(
+        _ pending: PendingCreation,
+        for logicalPlaylist: LogicalPlaylist
+    ) async throws -> Playlist {
+        do {
+            let playlist = try await pending.task.value
+            defaults.set(playlist.id.rawValue, forKey: logicalPlaylist.storageKey)
+            if pendingCreations[logicalPlaylist]?.token == pending.token {
+                pendingCreations[logicalPlaylist] = nil
+            }
+            return playlist
+        } catch {
+            if pendingCreations[logicalPlaylist]?.token == pending.token {
+                pendingCreations[logicalPlaylist] = nil
+            }
+            throw error
+        }
     }
 
     private func playlist(forStoredID storedID: String) async throws -> Playlist? {
