@@ -60,7 +60,7 @@ struct MainScreenView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .sheet(isPresented: $model.showOnboarding) {
+        .sheet(isPresented: $model.showOnboarding, onDismiss: model.dismissOnboarding) {
             OnboardingSheet {
                 model.dismissOnboarding()
             }
@@ -196,13 +196,17 @@ struct MainScreenView: View {
     private var membershipRow: some View {
         HStack(spacing: 10) {
             let membership = model.currentMembership
-            if membership.isKeeper {
+            if membership.isKeeper == true {
                 StatusPill(label: "KEEPER", tint: .green)
+            } else if membership.isKeeper == nil {
+                StatusPill(label: "KEEPER ?", tint: .white.opacity(0.24))
             }
-            if membership.isTriaged {
+            if membership.isTriaged == true {
                 StatusPill(label: "TRIAGED", tint: .red)
+            } else if membership.isTriaged == nil {
+                StatusPill(label: "TRIAGE ?", tint: .white.opacity(0.24))
             }
-            if !membership.isKeeper && !membership.isTriaged {
+            if membership.isKeeper == false && membership.isTriaged == false {
                 StatusPill(label: "UNSORTED", tint: .white.opacity(0.24))
             }
         }
@@ -218,7 +222,8 @@ struct MainScreenView: View {
     }
 
     private func actionArea(cardHeight: CGFloat) -> some View {
-        VStack(spacing: 14) {
+        let actionReference = model.currentTrackReference
+        return VStack(spacing: 14) {
             if model.canShowPermissionRecovery {
                 PermissionRecoveryCard(
                     message: model.permissionRecoveryMessage,
@@ -232,9 +237,12 @@ struct MainScreenView: View {
                         symbolName: model.primaryActionKind == .add ? "plus.circle.fill" : "checkmark.circle.fill",
                         tint: model.primaryActionKind == .add ? Color.neonAmber : Color.neonGreen,
                         minHeight: cardHeight,
-                        isDisabled: !model.canTrigger(model.primaryActionKind),
+                        isDisabled: !model.canTrigger(model.primaryActionKind, expectedReference: actionReference),
                         isEmphasized: model.emphasizedAction == model.primaryActionKind,
-                        tapAction: { model.handlePrimaryAction(model.primaryActionKind) }
+                        tapAction: {
+                            guard let actionReference else { return }
+                            model.handlePrimaryAction(model.primaryActionKind, expectedReference: actionReference)
+                        }
                     )
 
                     ActionPad(
@@ -243,9 +251,12 @@ struct MainScreenView: View {
                         symbolName: "minus.circle.fill",
                         tint: Color.neonRed,
                         minHeight: cardHeight,
-                        isDisabled: !model.canTrigger(.delete),
+                        isDisabled: !model.canTrigger(.delete, expectedReference: actionReference),
                         isEmphasized: model.emphasizedAction == .delete,
-                        tapAction: { model.handlePrimaryAction(.delete) }
+                        tapAction: {
+                            guard let actionReference else { return }
+                            model.handlePrimaryAction(.delete, expectedReference: actionReference)
+                        }
                     )
                 }
             }

@@ -299,6 +299,16 @@ struct ActionPad: View {
                     tapAction()
                 }
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title), \(subtitle)")
+        .accessibilityHint(isDisabled
+            ? "Unavailable until the current song and its library status are verified."
+            : "Activate to tag this song.")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default) {
+            guard !isDisabled else { return }
+            tapAction()
+        }
         .opacity(isDisabled ? 0.94 : 1)
     }
 }
@@ -605,9 +615,9 @@ struct OnboardingSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
-                Text("KEEP sends the current song to **Keepers**. If needed, it also tries to add that song to your library.")
-                Text("DELETE sends the current song to **Music Triage**. In V1, it does **not** remove anything from your Apple Music library.")
-                Text("The app waits to ask for Apple Music access until you actually try to tag a song.")
+                Text("Hold **KEEP** to add the current library song to **Keepers**. Hold **DELETE** to add it to **Music Triage**.")
+                Text("Songs can remain in both playlists. Remove one manually in Apple Music if you want to move it. **ADD** appears for catalog songs that are not in your library.")
+                Text("Actions stay disabled until Music Triage can verify the current song and its library status. The app asks for Apple Music access when you first try to tag a song.")
                     .foregroundStyle(.secondary)
                 Spacer()
             }

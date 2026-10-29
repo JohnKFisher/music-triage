@@ -45,11 +45,13 @@ public struct TagOperationCoordinator: Sendable {
         public let token: UUID
         public let action: TrackActionKind
         public let identity: TrackIdentity
+        public let reference: TrackReference?
 
-        fileprivate init(action: TrackActionKind, identity: TrackIdentity) {
+        fileprivate init(action: TrackActionKind, identity: TrackIdentity, reference: TrackReference?) {
             self.token = UUID()
             self.action = action
             self.identity = identity
+            self.reference = reference
         }
     }
 
@@ -65,7 +67,20 @@ public struct TagOperationCoordinator: Sendable {
     public mutating func begin(action: TrackActionKind, identity: TrackIdentity) -> Operation? {
         guard activeOperation == nil else { return nil }
 
-        let operation = Operation(action: action, identity: identity)
+        let operation = Operation(action: action, identity: identity, reference: nil)
+        activeOperation = operation
+        return operation
+    }
+
+    @discardableResult
+    public mutating func begin(action: TrackActionKind, reference: TrackReference) -> Operation? {
+        guard activeOperation == nil else { return nil }
+
+        let operation = Operation(
+            action: action,
+            identity: reference.fingerprint.identity,
+            reference: reference
+        )
         activeOperation = operation
         return operation
     }
@@ -84,6 +99,10 @@ public struct TagOperationCoordinator: Sendable {
 
     public func owns(_ operation: Operation, for identity: TrackIdentity) -> Bool {
         activeOperation == operation && operation.identity == identity
+    }
+
+    public func owns(_ operation: Operation, for reference: TrackReference) -> Bool {
+        activeOperation == operation && operation.reference == reference
     }
 }
 
@@ -179,6 +198,38 @@ public struct ObservedTrack: Equatable, Sendable {
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
     }
+
+    public static func normalizedMetadata(_ value: String) -> String {
+        normalize(value)
+    }
+}
+
+public struct TrackFingerprint: Equatable, Hashable, Sendable {
+    public let identity: TrackIdentity
+    public let title: String
+    public let artist: String
+    public let albumTitle: String
+    public let playbackStoreID: String?
+    public let persistentID: UInt64?
+
+    public init(identity: TrackIdentity, observation: ObservedTrack) {
+        self.identity = identity
+        self.title = observation.normalizedTitle
+        self.artist = observation.normalizedArtist
+        self.albumTitle = observation.albumTitle.map(ObservedTrack.normalizedMetadata) ?? ""
+        self.playbackStoreID = observation.playbackStoreID
+        self.persistentID = observation.persistentID
+    }
+}
+
+public struct TrackReference: Equatable, Hashable, Sendable {
+    public let fingerprint: TrackFingerprint
+    public let generation: UInt64
+
+    public init(fingerprint: TrackFingerprint, generation: UInt64) {
+        self.fingerprint = fingerprint
+        self.generation = generation
+    }
 }
 
 public struct VerifiedTrack: Equatable, Sendable {
@@ -191,6 +242,10 @@ public struct VerifiedTrack: Equatable, Sendable {
         self.observation = observation
         self.confirmedAt = confirmedAt
     }
+
+    public var fingerprint: TrackFingerprint {
+        TrackFingerprint(identity: identity, observation: observation)
+    }
 }
 
 public enum VerificationSurface: Equatable, Sendable {
@@ -201,15 +256,16 @@ public enum VerificationSurface: Equatable, Sendable {
 }
 
 public struct MembershipState: Equatable, Sendable {
-    public var isKeeper: Bool
-    public var isTriaged: Bool
+    public var isKeeper: Bool?
+    public var isTriaged: Bool?
 
-    public init(isKeeper: Bool, isTriaged: Bool) {
+    public init(isKeeper: Bool?, isTriaged: Bool?) {
         self.isKeeper = isKeeper
         self.isTriaged = isTriaged
     }
 
     public static let unsorted = MembershipState(isKeeper: false, isTriaged: false)
+    public static let unknown = MembershipState(isKeeper: nil, isTriaged: nil)
 }
 
 public struct ActionOutcome: Equatable, Sendable {

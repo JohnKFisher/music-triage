@@ -4,8 +4,7 @@ public struct PlaybackVerificationEngine: Sendable {
     public var strongIdentityStabilityWindow: TimeInterval
     public var fallbackStabilityWindow: TimeInterval
 
-    private var candidateIdentity: TrackIdentity?
-    private var candidateMetadataSignature: String?
+    private var candidateFingerprint: TrackFingerprint?
     private var candidateSince: Date?
     private var lastConfirmed: VerifiedTrack?
 
@@ -36,17 +35,18 @@ public struct PlaybackVerificationEngine: Sendable {
             )
         }
 
-        if let lastConfirmed, lastConfirmed.identity == identity, lastConfirmed.observation.metadataSignature == snapshot.metadataSignature {
+        let fingerprint = TrackFingerprint(identity: identity, observation: snapshot)
+
+        if let lastConfirmed, lastConfirmed.fingerprint == fingerprint {
+            clearCandidate()
             self.lastConfirmed = VerifiedTrack(identity: identity, observation: snapshot, confirmedAt: lastConfirmed.confirmedAt)
             return .ready(self.lastConfirmed!)
         }
 
-        let signature = snapshot.metadataSignature
-        let isSameCandidate = candidateIdentity == identity && candidateMetadataSignature == signature
+        let isSameCandidate = candidateFingerprint == fingerprint
 
         if !isSameCandidate {
-            candidateIdentity = identity
-            candidateMetadataSignature = signature
+            candidateFingerprint = fingerprint
             candidateSince = now
             return .verifying(observed: snapshot, candidateSince: now, lastConfirmed: lastConfirmed)
         }
@@ -75,8 +75,7 @@ public struct PlaybackVerificationEngine: Sendable {
     }
 
     private mutating func clearCandidate() {
-        candidateIdentity = nil
-        candidateMetadataSignature = nil
+        candidateFingerprint = nil
         candidateSince = nil
     }
 }
